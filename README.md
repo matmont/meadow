@@ -91,6 +91,6 @@ Meadow Waltz is currently a gameplay and engine prototype rather than a complete
 
 ## Assets and licensing
 
-Models, textures, and audio are stored under `public/`. Before redistributing the repository, document the source and license of each asset pack and add any required attribution.
+All assets were downloaded from [OpenGameArt](https://opengameart.org/), with the models created by [Quaternius](https://quaternius.com/). They are released under the [CC0 license](https://creativecommons.org/publicdomain/zero/1.0/) and are free to use in both personal and commercial projects.
 
 The repository does not currently include a project license.
