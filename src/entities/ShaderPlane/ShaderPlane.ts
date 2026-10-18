@@ -8,8 +8,8 @@ export default class ShaderPlane extends Entity {
   constructor(position: Vector3Like = { x: 0, y: 0, z: 0 }) {
     super(
       new Mesh(
-        new PlaneGeometry(2, 2),
-        new RawShaderMaterial({ vertexShader, fragmentShader }),
+        new PlaneGeometry(2, 2, 32, 32),
+        new RawShaderMaterial({ vertexShader, fragmentShader, side: 2 }),
       ),
     );
     this.object.position.copy(position);
