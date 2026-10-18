@@ -11,6 +11,7 @@ import PhysicsDebug from "./entities/PhysicsDebug";
 import DebugManager from "./DebugManager";
 import Sun from "./entities/Sun";
 import AudioManager from "./AudioManager";
+import ShaderPlane from "./entities/ShaderPlane/ShaderPlane";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas");
 if (!canvas) throw new Error("Canvas #canvas not found");
@@ -26,6 +27,7 @@ AudioManager.init();
 const engine = new Engine({ canvas });
 engine.entities.add(new Ground());
 engine.entities.add(new Tree({ x: 3, y: 0, z: -2 }));
+engine.entities.add(new ShaderPlane({ x: -3, y: 1, z: -2 }));
 const player = engine.entities.add(new Player(new Vector3(0, 10, 0)));
 engine.entities.add(
   new FollowCamera(engine.camera, player.object, {

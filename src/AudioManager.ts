@@ -65,6 +65,8 @@ export default class AudioManager {
       .add(master, "volume", 0, 1, 0.01)
       .name("master volume")
       .onChange((value: number) => Howler.volume(value));
+    // in debug mode defaulting to mute
+    this.muted = true;
     folder.add(AudioManager, "muted");
 
     for (const id of LoaderManager.soundIds) {
