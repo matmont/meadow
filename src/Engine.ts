@@ -65,7 +65,7 @@ export class Engine {
     this.#running = true;
     this.#lastFrameTime = 0;
     this.#timer.reset();
-    DebugManager.resetRenderingStats();
+    DebugManager.attachScene(this.scene);
     console.log(this.entities);
     this.renderer.setAnimationLoop(this.#loop);
   }
@@ -97,9 +97,9 @@ export class Engine {
     this.#resize();
     const delta = this.#timer.getDelta();
     this.entities.update(delta, this.#timer.getElapsed());
+    DebugManager.update(time);
     if (PhysicsManager.isInitialized) PhysicsManager.step(delta);
     this.renderer.render(this.scene, this.camera);
-    DebugManager.recordRenderedFrame(time);
   };
 
   #resize(): void {

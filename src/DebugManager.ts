@@ -1,16 +1,25 @@
 import GUI from "lil-gui";
+import { Mesh, MeshBasicMaterial, SkinnedMesh } from "three";
+import type { Object3D } from "three";
 
 const FPS_SAMPLE_DURATION = 500;
 
 export default class DebugManager {
-  static readonly isEnabled = new URLSearchParams(location.search).has(
-    "debug",
-  );
+  static readonly isEnabled = new URLSearchParams(location.search).has("debug");
   static #gui: GUI | null = null;
-  static #renderingFolder: GUI | null = null;
-  static readonly #renderingStats = { fps: 0 };
+  static #generalFolder: GUI | null = null;
+  static #scene: Object3D | null = null;
+  static readonly #generalSettings = { fps: 0, wireframes: false };
   static #fpsSampleStart: number | null = null;
   static #renderedFrameCount = 0;
+
+  static readonly #wireframeMaterial = new MeshBasicMaterial({
+    color: 0xff0000,
+    wireframe: true,
+  });
+  static readonly #wireframes = new WeakSet<Object3D>();
+  static readonly #wireframedMeshes = new WeakSet<Mesh>();
+  static readonly #pendingObjects: Object3D[] = [];
 
   private constructor() {}
 
@@ -22,22 +31,48 @@ export default class DebugManager {
     return DebugManager.#gui;
   }
 
-  static resetRenderingStats(): void {
-    DebugManager.#renderingStats.fps = 0;
+  static attachScene(scene: Object3D): void {
+    DebugManager.#scene = scene;
+    DebugManager.#generalSettings.fps = 0;
     DebugManager.#fpsSampleStart = null;
     DebugManager.#renderedFrameCount = 0;
 
-    if (!DebugManager.isEnabled || DebugManager.#renderingFolder) return;
-    DebugManager.#renderingFolder = DebugManager.gui.addFolder("Rendering");
-    DebugManager.#renderingFolder
-      .add(DebugManager.#renderingStats, "fps")
+    if (!DebugManager.isEnabled || DebugManager.#generalFolder) return;
+    DebugManager.#generalFolder = DebugManager.gui.addFolder("General");
+    DebugManager.#generalFolder
+      .add(DebugManager.#generalSettings, "fps")
       .name("FPS")
       .listen()
       .disable();
+    DebugManager.#generalFolder
+      .add(DebugManager.#generalSettings, "wireframes")
+      .name("Wireframes")
+      .onChange((enabled: boolean) => {
+        if (!enabled) DebugManager.#removeWireframes();
+      });
   }
 
-  static recordRenderedFrame(time: DOMHighResTimeStamp): void {
-    if (!DebugManager.#renderingFolder) return;
+  static update(time: DOMHighResTimeStamp): void {
+    if (!DebugManager.isEnabled) return;
+
+    DebugManager.#recordFrame(time);
+    DebugManager.#syncWireframes();
+  }
+
+  static #syncWireframes(): void {
+    if (!DebugManager.#generalSettings.wireframes || !DebugManager.#scene) {
+      return;
+    }
+
+    DebugManager.#scene.traverse(DebugManager.#collectUnwireframedMesh);
+    for (const object of DebugManager.#pendingObjects) {
+      DebugManager.#addWireframe(object as Mesh);
+    }
+    DebugManager.#pendingObjects.length = 0;
+  }
+
+  static #recordFrame(time: DOMHighResTimeStamp): void {
+    if (!DebugManager.#generalFolder) return;
 
     if (DebugManager.#fpsSampleStart === null) {
       DebugManager.#fpsSampleStart = time;
@@ -48,7 +83,7 @@ export default class DebugManager {
     const elapsed = time - DebugManager.#fpsSampleStart;
     if (elapsed < FPS_SAMPLE_DURATION) return;
 
-    DebugManager.#renderingStats.fps = Math.round(
+    DebugManager.#generalSettings.fps = Math.round(
       (DebugManager.#renderedFrameCount * 1000) / elapsed,
     );
     DebugManager.#fpsSampleStart = time;
@@ -56,11 +91,62 @@ export default class DebugManager {
   }
 
   static dispose(): void {
+    DebugManager.#removeWireframes();
+    DebugManager.#wireframeMaterial.dispose();
     DebugManager.#gui?.destroy();
     DebugManager.#gui = null;
-    DebugManager.#renderingFolder = null;
-    DebugManager.#renderingStats.fps = 0;
+    DebugManager.#generalFolder = null;
+    DebugManager.#scene = null;
+    DebugManager.#generalSettings.fps = 0;
+    DebugManager.#generalSettings.wireframes = false;
     DebugManager.#fpsSampleStart = null;
     DebugManager.#renderedFrameCount = 0;
+  }
+
+  static readonly #collectUnwireframedMesh = (object: Object3D): void => {
+    if (
+      object instanceof Mesh &&
+      !DebugManager.#wireframes.has(object) &&
+      !DebugManager.#wireframedMeshes.has(object)
+    ) {
+      DebugManager.#pendingObjects.push(object);
+    }
+  };
+
+  static readonly #collectWireframe = (object: Object3D): void => {
+    if (DebugManager.#wireframes.has(object)) {
+      DebugManager.#pendingObjects.push(object);
+    }
+  };
+
+  static #addWireframe(mesh: Mesh): void {
+    let wireframe: Mesh;
+    if (mesh instanceof SkinnedMesh) {
+      const skinnedWireframe = new SkinnedMesh(
+        mesh.geometry,
+        DebugManager.#wireframeMaterial,
+      );
+      skinnedWireframe.bind(mesh.skeleton, mesh.bindMatrix);
+      wireframe = skinnedWireframe;
+    } else {
+      wireframe = new Mesh(mesh.geometry, DebugManager.#wireframeMaterial);
+    }
+    wireframe.morphTargetInfluences = mesh.morphTargetInfluences;
+    wireframe.raycast = () => {};
+
+    DebugManager.#wireframes.add(wireframe);
+    DebugManager.#wireframedMeshes.add(mesh);
+    mesh.add(wireframe);
+  }
+
+  static #removeWireframes(): void {
+    DebugManager.#scene?.traverse(DebugManager.#collectWireframe);
+    for (const wireframe of DebugManager.#pendingObjects) {
+      if (wireframe.parent instanceof Mesh) {
+        DebugManager.#wireframedMeshes.delete(wireframe.parent);
+      }
+      wireframe.removeFromParent();
+    }
+    DebugManager.#pendingObjects.length = 0;
   }
 }
