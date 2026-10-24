@@ -1,9 +1,16 @@
 #ui {
+  --hud-text: #fff;
+  --hud-accent: #e07a2c;
+  --hud-panel: rgb(0 0 0 / 0.45);
+  --hud-border: rgb(255 255 255 / 0.2);
+  --hud-key-bg: rgb(255 255 255 / 0.85);
+  --hud-key-text: #111;
+
   position: fixed;
   inset: 0;
   pointer-events: none;
   font-family: system-ui, sans-serif;
-  color: #fff;
+  color: var(--hud-text);
   user-select: none;
 }
 

@@ -9,6 +9,7 @@ import {
 } from "three";
 import LoaderManager from "../../LoaderManager";
 import type { Tool, ToolId } from "../../entities/Player/tools";
+import { COLORS } from "../../colors";
 
 const ICON_SIZE = 128;
 const PADDING = 1.15;
@@ -28,14 +29,14 @@ export function renderToolIcons(
 ): Record<ToolId, string> {
   const renderer = new WebGLRenderer({ alpha: true, antialias: true });
   renderer.setSize(ICON_SIZE, ICON_SIZE, false);
-  renderer.setClearColor(0x000000, 0);
+  renderer.setClearColor(COLORS.black, 0);
 
   const scene = new Scene();
   const camera = new OrthographicCamera();
   camera.position.set(10, 0, 0);
   camera.lookAt(0, 0, 0);
-  const ambient = new AmbientLight(0xffffff, 1.2);
-  const key = new DirectionalLight(0xffffff, 2.5);
+  const ambient = new AmbientLight(COLORS.white, 1.2);
+  const key = new DirectionalLight(COLORS.white, 2.5);
   key.position.set(5, 6, 3);
   scene.add(ambient, key);
 

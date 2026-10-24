@@ -12,7 +12,7 @@ Il player deve poter scegliere fra tre tool di base (piccone, ascia, torcia), e 
 - I tool sono una lista `as const` in `src/entities/Player/tools.ts` (`TOOLS`), ognuno con `id`, `name` e `key`. I tipi `Tool` e `ToolId` sono derivati dalla lista, così aggiungere un tool è un'unica modifica controllata dal compilatore.
 - Lo stato (`selectedTool`) vive solo in `Player`, che espone `tools` e `selectedTool` come getter. La selezione avviene in `#readInput()` con i tasti numerici (`Digit1`, `Digit2`, `Digit3`).
 - `ToolBar` (`src/ui/ToolBar/`, slot `bottomLeft`) riceve il player come `ToolBarSource` e ha un binding booleano per ogni slot (`selectedTool === tool.id`), come stabilito in [hud-ui.md](hud-ui.md).
-- Le icone sono SVG inline in `src/ui/ToolBar/icons.ts`, indicizzate per `ToolId` (`Record<ToolId, string>`). Se si aggiunge un tool senza icona, il build fallisce.
+- Le icone sono SVG inline in `src/ui/ToolBar/icons.ts`, indicizzate per `ToolId` (`Record<ToolId, string>`). Se si aggiunge un tool senza icona, il build fallisce. **Sostituita il 2026-10-24 da [003](#003--icone-renderizzate-dai-modelli-3d-tasto-j-per-usare-il-tool).**
 
 ### Alternative scartate
 - **Selezione con il click sugli slot:** la UI dovrebbe scrivere nello stato del player, mentre la regola della HUD è che la UI legge soltanto. Se servirà, andrà introdotto un canale esplicito di comandi dalla UI al gioco, con un nuovo ADR.
@@ -21,7 +21,7 @@ Il player deve poter scegliere fra tre tool di base (piccone, ascia, torcia), e 
 - **Icone o etichette dentro `tools.ts`:** mescolerebbe dati di gioco e presentazione. La definizione di gioco resta indipendente dalla UI.
 
 ### Conseguenze
-- Per aggiungere un tool: una voce in `TOOLS` e un'icona in `TOOL_ICONS`.
+- Per aggiungere un tool: una voce in `TOOLS` e un'icona in `TOOL_ICONS`. (Dalla [003](#003--icone-renderizzate-dai-modelli-3d-tasto-j-per-usare-il-tool) l'icona non serve più.)
 - Il tool selezionato non ha ancora effetti di gioco (animazione `ToolUse`, interazioni): arriveranno in un passaggio successivo, leggendo `selectedTool` dal player.
 
 ## 002 — Tool in mano, ToolUse a figura intera, evento `toolHit`, luce della torcia sempre presente
@@ -50,3 +50,24 @@ Gli attrezzi sono in `public/models/tools/tools.glb` (nodi `Pickaxe`, `Axe`, `To
 - Chi ascolta `toolHit` deve rimuovere il listener quando viene distrutto.
 - `toolHits` nel pannello debug del player permette di verificare che l'evento scatti una volta per colpo.
 - Velocità di camminata e corsa e tempi del salto non sono ancora allineati alle nuove clip (lo stacco del salto è a ~0,375 s): da tarare a parte.
+
+## 003 — Icone renderizzate dai modelli 3D, tasto J per usare il tool
+
+- **Data:** 2026-10-24
+- **Stato:** accettata. Sostituisce la parte sulle icone SVG della [001](#001--tool-di-base-definiti-come-costanti-selezione-nel-player-toolbar-in-sola-lettura).
+
+### Contesto
+Le icone SVG disegnate a mano non somigliavano agli attrezzi veri del gioco. Inoltre si vuole poter usare il tool anche da tastiera.
+
+### Decisione
+- `renderToolIcons()` (`src/ui/ToolBar/icons.ts`) all'avvio istanzia ogni tool da `tools.glb`, lo inquadra di profilo con una camera ortografica (i manici sono lungo `-Z`, quindi la camera sta su `+X`) e lo inclina in diagonale secondo `ICON_ROTATION`. Ogni icona diventa un PNG trasparente (`toDataURL()`), mostrato con un `<img>`.
+- Il `WebGLRenderer` usato per le icone esiste solo durante quella chiamata: alla fine viene distrutto con `forceContextLoss()`, così non resta un secondo contesto WebGL accanto a quello del gioco. Geometrie e materiali sono condivisi con il modello in cache e non vengono distrutti.
+- Il tool si usa tenendo premuto il tasto sinistro del mouse **oppure** `KeyJ` (`InputManager.isAnyPressed`).
+
+### Alternative scartate
+- **PNG pre-renderizzati in `public/`:** andrebbero rigenerati a mano a ogni modifica dei modelli in Blender. Il rendering all'avvio costa pochi millisecondi e resta sempre allineato.
+- **Rendering con il renderer del gioco:** costringerebbe a passare l'`Engine` alla UI e a cambiare temporaneamente dimensione e render target del canvas principale.
+
+### Conseguenze
+- Per aggiungere un tool basta la voce in `TOOLS` e una rotazione in `ICON_ROTATION`, controllata dal compilatore tramite `Record<ToolId, …>`.
+- Le icone sono illuminate da luci fisse proprie: la fiamma della torcia non ha l'aspetto acceso che ha in gioco.

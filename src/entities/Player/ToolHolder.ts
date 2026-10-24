@@ -2,6 +2,7 @@ import { Box3, Mesh, PointLight, Vector3 } from "three";
 import type { Material, Object3D } from "three";
 import LoaderManager from "../../LoaderManager";
 import type { Tool } from "./tools";
+import { COLORS } from "../../colors";
 
 const FLAME_MATERIAL = "TL_Flame";
 const FLICKER_AMOUNT = 0.1;
@@ -9,7 +10,7 @@ const FLICKER_SMOOTHING = 15;
 
 export default class ToolHolder {
   readonly #hand: Object3D;
-  readonly #light = new PointLight(0xffffff, 0, 0, 2);
+  readonly #light = new PointLight(COLORS.white, 0, 0, 2);
   readonly #flameBounds = new Box3();
   #tool: Tool | null = null;
   #object: Object3D | null = null;

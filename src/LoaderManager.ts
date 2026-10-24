@@ -1,10 +1,12 @@
 import {
   LoadingManager,
+  Mesh,
+  MeshStandardMaterial,
   NoColorSpace,
   SRGBColorSpace,
   TextureLoader,
 } from "three";
-import type { ColorSpace, Group, Object3D, Texture } from "three";
+import type { ColorSpace, Group, Material, Object3D, Texture } from "three";
 import { Howl } from "howler";
 import { FBXLoader } from "three/addons/loaders/FBXLoader.js";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
@@ -22,6 +24,9 @@ interface ModelDescriptor {
   format: ModelFormat;
   url: string;
   scale?: number;
+  // Forces metalness to 0 for models wrongly exported as metallic, which render black in shadow
+  // when there is no environment map to reflect
+  nonMetallic?: boolean;
 }
 
 interface TextureDescriptor {
@@ -35,65 +40,79 @@ interface SoundDescriptor {
   volume?: number;
 }
 
-const PROP_SCALE = 3;
-
 const ASSETS = {
   models: {
-    grass: { format: "gltf", url: "models/grass.glb", scale: PROP_SCALE },
+    grass: {
+      format: "gltf",
+      url: "models/grass.glb",
+      scale: 3,
+      nonMetallic: true,
+    },
     flowerPurple: {
       format: "gltf",
       url: "models/flower_purpleA.glb",
-      scale: PROP_SCALE,
+      scale: 3,
+      nonMetallic: true,
     },
     flowerPurpleB: {
       format: "gltf",
       url: "models/flower_purpleB.glb",
-      scale: PROP_SCALE,
+      scale: 3,
+      nonMetallic: true,
     },
     flowerPurpleC: {
       format: "gltf",
       url: "models/flower_purpleC.glb",
-      scale: PROP_SCALE,
+      scale: 3,
+      nonMetallic: true,
     },
     flowerYellow: {
       format: "gltf",
       url: "models/flower_yellowA.glb",
-      scale: PROP_SCALE,
+      scale: 3,
+      nonMetallic: true,
     },
     flowerYellowB: {
       format: "gltf",
       url: "models/flower_yellowB.glb",
-      scale: PROP_SCALE,
+      scale: 3,
+      nonMetallic: true,
     },
     flowerYellowC: {
       format: "gltf",
       url: "models/flower_yellowC.glb",
-      scale: PROP_SCALE,
+      scale: 3,
+      nonMetallic: true,
     },
     flowerRed: {
       format: "gltf",
       url: "models/flower_redA.glb",
-      scale: PROP_SCALE,
+      scale: 3,
+      nonMetallic: true,
     },
     flowerRedB: {
       format: "gltf",
       url: "models/flower_redB.glb",
-      scale: PROP_SCALE,
+      scale: 3,
+      nonMetallic: true,
     },
     flowerRedC: {
       format: "gltf",
       url: "models/flower_redC.glb",
-      scale: PROP_SCALE,
+      scale: 3,
+      nonMetallic: true,
     },
     treePine: {
       format: "gltf",
       url: "models/tree_pineRoundA.glb",
-      scale: PROP_SCALE,
+      scale: 3,
+      nonMetallic: true,
     },
     rockTall: {
       format: "gltf",
       url: "models/rock_tallJ.glb",
-      scale: PROP_SCALE,
+      scale: 3,
+      nonMetallic: true,
     },
     explorer: {
       format: "gltf",
@@ -237,12 +256,24 @@ export default class LoaderManager {
     ][];
 
     await Promise.all([
-      ...models.map(([id, { format, url }]) =>
+      ...models.map(([id, { format, url, nonMetallic = false }]) =>
         LoaderManager.#fetch(id, url, async (fullUrl) => {
-          LoaderManager.#models.set(
-            id,
-            await modelLoaders[format].loadAsync(fullUrl),
-          );
+          const model = await modelLoaders[format].loadAsync(fullUrl);
+          // Fixed on the cached source, so every instance shares the corrected materials
+          if (nonMetallic) {
+            ("scene" in model ? model.scene : model).traverse((child) => {
+              if (!(child instanceof Mesh)) return;
+              const materials: Material[] = Array.isArray(child.material)
+                ? child.material
+                : [child.material];
+              for (const material of materials) {
+                if (material instanceof MeshStandardMaterial) {
+                  material.metalness = 0;
+                }
+              }
+            });
+          }
+          LoaderManager.#models.set(id, model);
         }),
       ),
       ...textures.map(([id, { url, colorSpace = NoColorSpace }]) =>

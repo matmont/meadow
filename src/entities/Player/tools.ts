@@ -1,5 +1,6 @@
 import type { ColorRepresentation } from "three";
 import type { KeyCode } from "../../InputManager";
+import { COLORS } from "../../colors";
 
 export interface ToolLight {
   readonly color: ColorRepresentation;
@@ -23,7 +24,7 @@ export const TOOLS = [
     name: "Torch",
     key: "Digit3",
     node: "Torch",
-    light: { color: 0xff9a3c, intensity: 4, distance: 6 },
+    light: { color: COLORS.torchLight, intensity: 4, distance: 6 },
   },
 ] as const satisfies readonly ToolDefinition[];
 

@@ -1,6 +1,7 @@
 import GUI from "lil-gui";
 import { Mesh, MeshBasicMaterial, SkinnedMesh } from "three";
 import type { Object3D } from "three";
+import { COLORS } from "./colors";
 
 const FPS_SAMPLE_DURATION = 500;
 
@@ -14,7 +15,7 @@ export default class DebugManager {
   static #renderedFrameCount = 0;
 
   static readonly #wireframeMaterial = new MeshBasicMaterial({
-    color: 0xff0000,
+    color: COLORS.debugWireframe,
     wireframe: true,
   });
   static readonly #wireframes = new WeakSet<Object3D>();

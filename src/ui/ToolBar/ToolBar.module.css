@@ -9,14 +9,12 @@
   place-items: center;
   width: 56px;
   height: 56px;
-  border: 2px solid rgb(255 255 255 / 0.2);
+  border: 2px solid var(--hud-border);
   border-radius: 8px;
-  background: rgb(0 0 0 / 0.45);
-  color: rgb(255 255 255 / 0.6);
+  background: var(--hud-panel);
   transition:
     border-color 0.15s,
     background 0.15s,
-    color 0.15s,
     transform 0.15s;
 }
 
@@ -32,9 +30,8 @@
 }
 
 .selected {
-  border-color: #e07a2c;
-  background: rgb(224 122 44 / 0.25);
-  color: #fff;
+  border-color: var(--hud-accent);
+  background: color-mix(in srgb, var(--hud-accent) 25%, transparent);
   transform: translateY(-4px);
 }
 
@@ -45,8 +42,8 @@
   min-width: 14px;
   padding: 0 3px;
   border-radius: 3px;
-  background: rgb(255 255 255 / 0.85);
-  color: #111;
+  background: var(--hud-key-bg);
+  color: var(--hud-key-text);
   font-size: 10px;
   font-weight: 700;
   line-height: 14px;

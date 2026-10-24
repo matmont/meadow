@@ -9,6 +9,7 @@ import {
 import type { ColorRepresentation, Vector3Like } from "three";
 import type GUI from "lil-gui";
 import { Entity } from "../Entity";
+import { COLORS } from "../colors";
 
 export interface SunOptions {
   offset?: Vector3Like;
@@ -22,7 +23,7 @@ export interface SunOptions {
 const defaultOptions: SunOptions = {
   offset: { x: 5, y: 10, z: 5 },
   focusOffset: { x: 0, y: 0, z: 0 },
-  color: 0xffffff,
+  color: COLORS.sunlight,
   intensity: 5,
   shadowSize: 15,
   mapSize: 2048,
@@ -78,8 +79,11 @@ export default class Sun extends Entity {
     const camera = this.light.shadow.camera;
     camera.left = camera.bottom = -value;
     camera.right = camera.top = value;
-    camera.near = 0.1;
-    camera.far = this.light.position.length() + value * 2;
+    // The light sits close to the focus: an orthographic camera may start behind it, so the
+    // ground and casters on the side facing the sun are not clipped as the frustum grows
+    const distance = this.light.position.length();
+    camera.near = distance - value * 2;
+    camera.far = distance + value * 2;
     camera.updateProjectionMatrix();
     this.#helper?.update();
   }
