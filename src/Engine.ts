@@ -3,6 +3,7 @@ import type { WebGLRendererParameters } from "three";
 import DebugManager from "./DebugManager";
 import { EntityManager } from "./EntityManager";
 import PhysicsManager from "./PhysicsManager";
+import UIManager from "./UIManager";
 import { resizeRendererToDisplaySize } from "./utils";
 
 export interface EngineOptions {
@@ -99,6 +100,7 @@ export class Engine {
     this.entities.update(delta, this.#timer.getElapsed());
     DebugManager.update(time);
     if (PhysicsManager.isInitialized) PhysicsManager.step(delta);
+    UIManager.update(delta);
     this.renderer.render(this.scene, this.camera);
   };
 

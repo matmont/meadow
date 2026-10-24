@@ -95,11 +95,12 @@ const ASSETS = {
       url: "models/rock_tallJ.glb",
       scale: PROP_SCALE,
     },
-    baseCharacter: {
-      format: "fbx",
-      url: "models/characters/Casual_Male.fbx",
-      scale: 0.006,
+    explorer: {
+      format: "gltf",
+      url: "models/characters/explorer.glb",
+      scale: 1.3,
     },
+    tools: { format: "gltf", url: "models/tools/tools.glb" },
   },
   textures: {
     grassColor: {
@@ -199,10 +200,14 @@ export default class LoaderManager {
     return sound;
   }
 
-  static instantiate(id: ModelId): Object3D {
+  static instantiate(id: ModelId, node?: string): Object3D {
     const model = LoaderManager.model(id);
+    const root = "scene" in model ? model.scene : model;
+    const source = node === undefined ? root : root.getObjectByName(node);
+    if (!source) throw new Error(`Node "${node}" not found in model "${id}"`);
     // SkeletonUtils.clone, a differenza di Object3D.clone, ricollega le ossa delle SkinnedMesh
-    const object = clone("scene" in model ? model.scene : model);
+    const object = clone(source);
+    if (node === undefined) object.animations = model.animations;
     const { scale = 1 }: ModelDescriptor = ASSETS.models[id];
     object.scale.multiplyScalar(scale);
     return object;

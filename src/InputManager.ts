@@ -1,6 +1,8 @@
 // Codici fisici dei tasti (`KeyboardEvent.code`), indipendenti dal layout: "KeyW", "Space", "ArrowUp"...
 export type KeyCode = string;
 
+const MOUSE_BUTTONS = ["MouseLeft", "MouseMiddle", "MouseRight"] as const;
+
 export default class InputManager {
   static readonly #pressed = new Set<KeyCode>();
   static #controller: AbortController | null = null;
@@ -20,6 +22,24 @@ export default class InputManager {
     target.addEventListener(
       "keyup",
       (event) => InputManager.#pressed.delete(event.code),
+      { signal },
+    );
+    target.addEventListener(
+      "pointerdown",
+      (event) => {
+        const code = MOUSE_BUTTONS[event.button];
+        if (code && event.target instanceof HTMLCanvasElement) {
+          InputManager.#pressed.add(code);
+        }
+      },
+      { signal },
+    );
+    target.addEventListener(
+      "pointerup",
+      (event) => {
+        const code = MOUSE_BUTTONS[event.button];
+        if (code) InputManager.#pressed.delete(code);
+      },
       { signal },
     );
     target.addEventListener("blur", () => InputManager.#pressed.clear(), {

@@ -1,35 +1,48 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import type GUI from "lil-gui";
-import { Box3, Group, Quaternion, Vector3 } from "three";
+import { Box3, EventDispatcher, Group, Quaternion, Vector3 } from "three";
 import { Entity } from "../../Entity";
 import LoaderManager from "../../LoaderManager";
 import InputManager from "../../InputManager";
 import PhysicsManager from "../../PhysicsManager";
 import CharacterAnimator from "../../CharacterAnimator";
 import AudioManager from "../../AudioManager";
-import { colorPlayer } from "./utils";
+import ToolHolder from "./ToolHolder";
+import { TOOLS } from "./tools";
+import type { Tool, ToolId } from "./tools";
 
-type PlayerState = "idle" | "walk" | "run" | "jump";
+type PlayerState = "idle" | "walk" | "run" | "jump" | "toolUse";
+
+export interface PlayerEventMap {
+  toolHit: { tool: ToolId };
+}
 
 const FOOTSTEP_RATES: Partial<Record<PlayerState, number>> = {
   walk: 1,
-  run: 2,
+  run: 1.3,
 };
 
 const HEIGHT = 1.8;
 const RADIUS = 0.3;
+const TOOL_HIT_TIME = 0.5;
 
 export default class Player extends Entity {
   static readonly #UP = new Vector3(0, 1, 0);
+  readonly events = new EventDispatcher<PlayerEventMap>();
   #walkSpeed = 4;
   #runSpeed = 8;
   #isJumping = false;
+  #selectedTool: Tool = TOOLS[0];
+  #isUsingTool = false;
+  #toolUseTime = 0;
+  #toolHits = 0;
 
   readonly #direction = new Vector3();
   readonly #movement = new Vector3();
   readonly #turnSpeed = 15;
   readonly #targetQuaternion = new Quaternion();
   readonly #animator: CharacterAnimator<PlayerState>;
+  readonly #toolHolder: ToolHolder;
   readonly #body: RAPIER.RigidBody;
   readonly #collider: RAPIER.Collider;
   readonly #controller: RAPIER.KinematicCharacterController;
@@ -38,8 +51,7 @@ export default class Player extends Entity {
   #footstepsState: PlayerState | null = null;
 
   constructor(position: Vector3 = new Vector3(0, 0, 0)) {
-    const model = LoaderManager.instantiate("baseCharacter");
-    colorPlayer(model);
+    const model = LoaderManager.instantiate("explorer");
     const bounds = new Box3().setFromObject(model);
     const center = bounds.getCenter(new Vector3());
     model.position.set(-center.x, -bounds.min.y, -center.z);
@@ -48,14 +60,18 @@ export default class Player extends Entity {
     this.object.position.copy(position);
 
     this.#animator = new CharacterAnimator<PlayerState>(model, {
-      idle: { clip: "CharacterArmature|Idle" },
-      walk: { clip: "CharacterArmature|Walk" },
-      run: {
-        clip: "CharacterArmature|Walk",
-        timeScale: this.#runSpeed / this.#walkSpeed,
-      },
-      jump: { clip: "CharacterArmature|Victory", timeScale: 1.5 },
+      idle: { clip: "Idle" },
+      walk: { clip: "Walk" },
+      run: { clip: "Run" },
+      jump: { clip: "Jump", timeScale: 1.35, once: true },
+      toolUse: { clip: "ToolUse" },
     });
+
+    const hand =
+      model.getObjectByName("handR") ?? model.getObjectByName("hand.R");
+    if (!hand) throw new Error('Bone "hand.R" not found in the player model');
+    this.#toolHolder = new ToolHolder(hand);
+    this.#toolHolder.equip(this.#selectedTool);
 
     const world = PhysicsManager.world;
     // The body sits at the capsule's center, the object at the feet
@@ -89,8 +105,25 @@ export default class Player extends Entity {
     return this.#isJumping;
   }
 
+  get tools(): readonly Tool[] {
+    return TOOLS;
+  }
+
+  get selectedTool(): ToolId {
+    return this.#selectedTool.id;
+  }
+
+  get isUsingTool(): boolean {
+    return this.#isUsingTool;
+  }
+
+  get toolHits(): number {
+    return this.#toolHits;
+  }
+
   get state(): PlayerState {
     if (this.isJumping) return "jump";
+    if (this.isUsingTool) return "toolUse";
     if (!this.isMoving) return "idle";
     return this.isRunning ? "run" : "walk";
   }
@@ -105,6 +138,8 @@ export default class Player extends Entity {
     if (this.isMoving) this.#turn(delta);
     this.#animator.play(this.state);
     this.#animator.update(delta);
+    this.#updateToolHit();
+    this.#toolHolder.update(delta);
     this.#updateFootsteps();
   }
 
@@ -113,6 +148,7 @@ export default class Player extends Entity {
   }
 
   override dispose(): void {
+    this.#toolHolder.dispose();
     this.#animator.dispose();
     const world = PhysicsManager.world;
     world.removeCharacterController(this.#controller);
@@ -126,8 +162,38 @@ export default class Player extends Entity {
 
     if (InputManager.isPressed("Space")) this.#jump();
 
+    for (const tool of TOOLS) {
+      if (InputManager.isPressed(tool.key)) this.#selectedTool = tool;
+    }
+    this.#toolHolder.equip(this.#selectedTool);
+
+    this.#isUsingTool = InputManager.isAnyPressed("MouseLeft", "KeyJ");
+    if (this.#isUsingTool && !this.isJumping) {
+      this.#direction.set(0, 0, 0);
+      return;
+    }
+
     this.#direction.set(axis("KeyA", "KeyD"), 0, axis("KeyW", "KeyS"));
     if (this.isMoving) this.#direction.normalize();
+  }
+
+  #updateToolHit(): void {
+    if (this.#animator.state !== "toolUse") {
+      this.#toolUseTime = 0;
+      return;
+    }
+
+    const previous = this.#toolUseTime;
+    const time = this.#animator.time;
+    this.#toolUseTime = time;
+    const crossed =
+      time >= previous
+        ? previous < TOOL_HIT_TIME && time >= TOOL_HIT_TIME
+        : previous < TOOL_HIT_TIME || time >= TOOL_HIT_TIME;
+    if (!crossed) return;
+
+    this.#toolHits++;
+    this.events.dispatchEvent({ type: "toolHit", tool: this.#selectedTool.id });
   }
 
   #jump(): void {
@@ -203,13 +269,14 @@ export default class Player extends Entity {
     folder.add(this, "isRunning").listen().disable();
     folder.add(this, "isJumping").listen().disable();
     folder.add(this, "state").listen().disable();
+    folder.add(this, "selectedTool").listen().disable();
+    folder.add(this, "isUsingTool").listen().disable();
+    folder.add(this, "toolHits").listen().disable();
     folder.add(privateParams, "walkSpeed").onChange((value: number) => {
       this.#walkSpeed = value;
-      this.#animator.play(this.state);
     });
     folder.add(privateParams, "runSpeed").onChange((value: number) => {
       this.#runSpeed = value;
-      this.#animator.play(this.state);
     });
   }
 }

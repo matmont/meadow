@@ -9,7 +9,10 @@ export default class Tree extends Entity {
   readonly #body: RAPIER.RigidBody;
 
   constructor(position: Vector3Like = { x: 0, y: 0, z: 0 }) {
-    super(LoaderManager.instantiate("treePine"), { castShadow: true });
+    super(LoaderManager.instantiate("treePine"), {
+      castShadow: true,
+      receiveShadow: true,
+    });
     this.object.position.copy(position);
 
     const size = new Box3().setFromObject(this.object).getSize(new Vector3());

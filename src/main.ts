@@ -12,9 +12,14 @@ import DebugManager from "./DebugManager";
 import Sun from "./entities/Sun";
 import AudioManager from "./AudioManager";
 import ShaderPlane from "./entities/ShaderPlane/ShaderPlane";
+import UIManager from "./UIManager";
+import PlayerStatus from "./ui/PlayerStatus/PlayerStatus";
+import ToolBar from "./ui/ToolBar/ToolBar";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas");
 if (!canvas) throw new Error("Canvas #canvas not found");
+const uiRoot = document.querySelector<HTMLElement>("#ui");
+if (!uiRoot) throw new Error("UI root #ui not found");
 
 await LoaderManager.loadAll((loaded, total) => {
   console.log(`Loading assets: ${loaded}/${total}`);
@@ -23,6 +28,7 @@ await LoaderManager.loadAll((loaded, total) => {
 await PhysicsManager.init();
 InputManager.init();
 AudioManager.init();
+UIManager.init(uiRoot);
 
 const engine = new Engine({ canvas });
 engine.entities.add(new Ground());
@@ -40,7 +46,10 @@ if (DebugManager.isEnabled) {
 }
 
 engine.entities.add(new Sun(player.object));
-engine.scene.add(new HemisphereLight(0xffffff, 0x000000, 0.5));
+// engine.scene.add(new HemisphereLight(0xffffff, 0x000000, 0.5));
+
+UIManager.add(new PlayerStatus(player), "topLeft");
+UIManager.add(new ToolBar(player), "bottomLeft");
 
 engine.start();
 import.meta.hot?.dispose(() => {
@@ -48,5 +57,6 @@ import.meta.hot?.dispose(() => {
   InputManager.dispose();
   PhysicsManager.dispose();
   AudioManager.dispose();
+  UIManager.dispose();
   DebugManager.dispose();
 });

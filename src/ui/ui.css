@@ -1,0 +1,44 @@
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  font-family: system-ui, sans-serif;
+  color: #fff;
+  user-select: none;
+}
+
+.ui-slot {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ui-slot--topLeft {
+  top: 16px;
+  left: 16px;
+}
+
+.ui-slot--topRight {
+  top: 16px;
+  right: 16px;
+  align-items: flex-end;
+}
+
+.ui-slot--bottomLeft {
+  bottom: 16px;
+  left: 16px;
+}
+
+.ui-slot--bottomRight {
+  bottom: 16px;
+  right: 16px;
+  align-items: flex-end;
+}
+
+.ui-slot--center {
+  top: 50%;
+  left: 50%;
+  align-items: center;
+  transform: translate(-50%, -50%);
+}

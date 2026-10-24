@@ -48,6 +48,10 @@ export default class CharacterAnimator<State extends string> {
     return this.#state;
   }
 
+  get time(): number {
+    return this.#state !== null ? this.#actions.get(this.#state)!.time : 0;
+  }
+
   // `onEnd` runs when a `once` animation finishes, or when another state interrupts it
   play(state: State, onEnd?: () => void): void {
     if (state === this.#state) return;
