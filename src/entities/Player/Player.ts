@@ -32,6 +32,7 @@ export default class Player extends Entity {
   #walkSpeed = 4;
   #runSpeed = 8;
   #isJumping = false;
+  #isGrounded = false;
   #selectedTool: Tool = TOOLS[0];
   #isUsingTool = false;
   #toolUseTime = 0;
@@ -103,6 +104,10 @@ export default class Player extends Entity {
 
   get isJumping(): boolean {
     return this.#isJumping;
+  }
+
+  get isGrounded(): boolean {
+    return this.#isGrounded;
   }
 
   get tools(): readonly Tool[] {
@@ -240,7 +245,8 @@ export default class Player extends Entity {
 
     this.#controller.computeColliderMovement(this.#collider, this.#movement);
     const corrected = this.#controller.computedMovement();
-    if (this.#controller.computedGrounded()) this.#jumpFinished();
+    this.#isGrounded = this.#controller.computedGrounded();
+    if (this.#isGrounded) this.#jumpFinished();
 
     const current = this.#body.translation();
     const next = {
