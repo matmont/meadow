@@ -40,15 +40,15 @@ const sandColor = new Color(COLORS.sand);
 // Small cubes of ground kicked up by the feet while walking or running, plus a burst on landing
 export default class FootDust extends InstancedParticles {
   readonly walk: Emission = {
-    rate: 12, // 20
+    rate: 20, // 20
     lift: 1.6,
     spread: 0.6,
     size: 0.06,
     life: 0.7,
   };
   readonly run: Emission = {
-    rate: 30, // 40
-    lift: 2.4,
+    rate: 40, // 40
+    lift: 5,
     spread: 1,
     size: 0.08,
     life: 0.9,
