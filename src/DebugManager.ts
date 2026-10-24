@@ -32,6 +32,22 @@ export default class DebugManager {
     return DebugManager.#gui;
   }
 
+  // Returns null when debug is disabled or `populate` adds no controls
+  static createFolder(
+    title: string,
+    populate: (folder: GUI) => void,
+  ): GUI | null {
+    if (!DebugManager.isEnabled) return null;
+
+    const folder = DebugManager.gui.addFolder(title);
+    populate(folder);
+    if (folder.controllers.length === 0 && folder.folders.length === 0) {
+      folder.destroy();
+      return null;
+    }
+    return folder;
+  }
+
   static attachScene(scene: Object3D): void {
     DebugManager.#scene = scene;
     DebugManager.#generalSettings.fps = 0;

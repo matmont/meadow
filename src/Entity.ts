@@ -46,17 +46,12 @@ export abstract class Entity {
   onDebugGuiCreate(_folder: GUI): void {}
 
   createDebugFolder(): void {
-    if (!DebugManager.isEnabled || this.#debugFolder) return;
+    if (this.#debugFolder) return;
 
-    const folder = DebugManager.gui.addFolder(
+    this.#debugFolder = DebugManager.createFolder(
       `${this.constructor.name} (Id: ${this.id})`,
+      (folder) => this.onDebugGuiCreate(folder),
     );
-    this.onDebugGuiCreate(folder);
-    if (folder.controllers.length === 0 && folder.folders.length === 0) {
-      folder.destroy();
-      return;
-    }
-    this.#debugFolder = folder;
   }
 
   destroyDebugFolder(): void {

@@ -51,3 +51,4 @@ Gli sbuffi morbidi della 001 non convincevano dal punto di vista grafico. Si pre
 - Il costo sulla CPU cresce con le particelle vive (decine, poche decine di microsecondi per frame). Con migliaia di particelle bisognerebbe tornare a una simulazione nello shader.
 - I cubetti proiettano ombra: una draw call in più nel pass delle ombre.
 - `frustumCulled` resta disattivato, perché le istanze si muovono a ogni frame.
+- **Aggiornamento 2026-10-24:** `FootDust` non è più un'entità. Si trova in `src/particles/FootDust/` ed estende `InstancedParticles` del sistema di particelle descritto in [particles.md](particles.md). La sorgente si chiama `FootDustSource`.

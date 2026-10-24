@@ -18,6 +18,7 @@ There is no application framework, test runner, linter, or formatter configured.
 - `src/InputManager.ts`, `src/DebugManager.ts`: global input and debug-GUI lifecycles.
 - `src/AudioManager.ts`: plays and stops sounds loaded by `LoaderManager`, mute state, and the "Audio" debug folder.
 - `src/UIManager.ts`: 2D HUD overlay lifecycle: layout slots inside `#ui`, mounting, per-frame binding sync, and teardown.
+- `src/particles/`: particle effects (`ParticleEffect` subclasses), each in its own folder (for example `src/particles/FootDust/`), plus the shared `ParticleSystem` and the CPU backend `InstancedParticles`.
 - `src/ui/`: HUD components (`UIComponent` subclasses), each in its own folder with its `*.module.css` (for example `src/ui/PlayerStatus/`), plus shared helpers (`dom.ts`, `ui.css`).
 - `.claude/adr/`: architecture decision records, one file per feature.
 - `public/`: source assets. URLs registered in `LoaderManager` are relative to this directory through `import.meta.env.BASE_URL`.
@@ -66,6 +67,16 @@ Resource ownership is important:
 - Remove Rapier objects before `PhysicsManager.dispose()` runs.
 
 The frame loop currently updates entities, steps Rapier, syncs the UI, and then renders. Consider that ordering before changing physics synchronization. Clamp or otherwise protect simulation code from unusually large frame deltas, following `PhysicsManager.step()` where applicable. Avoid needless allocations in per-frame `update()` methods; reusable vectors/quaternions are kept as fields throughout the codebase.
+
+## Particles
+
+Particle effects live in `src/particles/` and extend `ParticleEffect`, not `Entity`. See `.claude/adr/particles.md`.
+
+- Add effects with `engine.particles.add()`. `Engine` updates them right after entities and disposes them in `Engine.dispose()`.
+- An effect receives its source in the constructor, typed as a minimal interface declared in the effect's file (for example `FootDustSource`).
+- `stop()` ends the emission; the system removes and disposes the effect once no particle is alive. Whoever adds an effect tied to an entity stops it when that entity is destroyed.
+- CPU effects extend `InstancedParticles`: they own their geometry and material, implement `emit()`, and fill the particles returned by `spawn()`. The pool is preallocated, so never allocate per particle or per frame.
+- A shader-driven effect would be another `ParticleEffect` subclass with the same lifecycle.
 
 ## HUD / 2D UI
 

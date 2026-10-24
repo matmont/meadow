@@ -1,7 +1,7 @@
 import { Color, Fog, HemisphereLight, Vector3 } from "three";
 import { Engine } from "./Engine";
 import Ground from "./entities/World/Ground";
-import FootDust from "./entities/FootDust/FootDust";
+import FootDust from "./particles/FootDust/FootDust";
 import Tree from "./entities/Tree";
 import LoaderManager from "./LoaderManager";
 import Player from "./entities/Player/Player";
@@ -37,7 +37,7 @@ engine.entities.add(new Tree({ x: 3, y: 0, z: -2 }));
 engine.entities.add(new ShaderPlane({ x: -3, y: 1, z: -2 }));
 const player = engine.entities.add(new Player(new Vector3(0, 10, 0)));
 engine.entities.add(new Ground(player.object));
-engine.entities.add(new FootDust(player));
+engine.particles.add(new FootDust(player));
 engine.entities.add(
   new FollowCamera(engine.camera, player.object, {
     offset: { x: 0, y: 10, z: 10 },

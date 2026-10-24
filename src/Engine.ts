@@ -2,6 +2,7 @@ import { PerspectiveCamera, Scene, Timer, WebGLRenderer } from "three";
 import type { WebGLRendererParameters } from "three";
 import DebugManager from "./DebugManager";
 import { EntityManager } from "./EntityManager";
+import { ParticleSystem } from "./particles/ParticleSystem";
 import PhysicsManager from "./PhysicsManager";
 import UIManager from "./UIManager";
 import { resizeRendererToDisplaySize } from "./utils";
@@ -18,6 +19,7 @@ export class Engine {
   readonly camera: PerspectiveCamera;
   readonly renderer: WebGLRenderer;
   readonly entities = new EntityManager(this.scene);
+  readonly particles = new ParticleSystem(this.scene);
   readonly #timer = new Timer();
   readonly #maxPixelCount: number | undefined;
   #frameInterval = 0;
@@ -83,6 +85,7 @@ export class Engine {
 
     this.stop();
     this.entities.dispose();
+    this.particles.dispose();
     this.#timer.dispose();
     this.renderer.dispose();
     this.#disposed = true;
@@ -97,7 +100,10 @@ export class Engine {
 
     this.#resize();
     const delta = this.#timer.getDelta();
-    this.entities.update(delta, this.#timer.getElapsed());
+    const elapsed = this.#timer.getElapsed();
+    this.entities.update(delta, elapsed);
+    // After entities, so effects read the positions they reached this frame
+    this.particles.update(delta, elapsed);
     DebugManager.update(time);
     if (PhysicsManager.isInitialized) PhysicsManager.step(delta);
     UIManager.update(delta);
