@@ -1,6 +1,6 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import type GUI from "lil-gui";
-import { Box3, EventDispatcher, Group, Quaternion, Vector3 } from "three";
+import { EventDispatcher, Group, Quaternion, Vector3 } from "three";
 import { Entity } from "../../Entity";
 import LoaderManager from "../../LoaderManager";
 import InputManager from "../../InputManager";
@@ -53,9 +53,6 @@ export default class Player extends Entity {
 
   constructor(position: Vector3 = new Vector3(0, 0, 0)) {
     const model = LoaderManager.instantiate("explorer");
-    const bounds = new Box3().setFromObject(model);
-    const center = bounds.getCenter(new Vector3());
-    model.position.set(-center.x, -bounds.min.y, -center.z);
     super(new Group().add(model), { castShadow: true });
 
     this.object.position.copy(position);
@@ -68,8 +65,7 @@ export default class Player extends Entity {
       toolUse: { clip: "ToolUse" },
     });
 
-    const hand =
-      model.getObjectByName("handR") ?? model.getObjectByName("hand.R");
+    const hand = model.getObjectByName("handR");
     if (!hand) throw new Error('Bone "hand.R" not found in the player model');
     this.#toolHolder = new ToolHolder(hand);
     this.#toolHolder.equip(this.#selectedTool);

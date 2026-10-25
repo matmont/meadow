@@ -114,12 +114,8 @@ const ASSETS = {
       scale: 3,
       nonMetallic: true,
     },
-    explorer: {
-      format: "gltf",
-      url: "models/characters/explorer.glb",
-      scale: 1.3,
-    },
-    tools: { format: "gltf", url: "models/tools/tools.glb" },
+    explorer: { format: "gltf", url: "models/characters/character.glb" },
+    tools: { format: "gltf", url: "models/tools/character_tools.glb" },
   },
   textures: {
     grassColor: {
