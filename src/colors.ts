@@ -10,6 +10,7 @@ export const COLORS = {
   ground: 0x329383,
   torchLight: 0xff6526,
   campfireLight: 0xff7a2e,
+  wind: 0xffffff,
   dirt: 0x7a5a3a,
   sand: 0xcdb284,
   debugWireframe: 0xff0000,

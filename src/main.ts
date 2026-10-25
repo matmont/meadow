@@ -4,6 +4,7 @@ import Ground from "./entities/World/Ground";
 import FootDust from "./particles/FootDust/FootDust";
 import Tree from "./entities/Tree";
 import Campfire from "./entities/Campfire";
+import WindStreaks from "./entities/WindStreaks/WindStreaks";
 import LoaderManager from "./LoaderManager";
 import Player from "./entities/Player/Player";
 import FollowCamera from "./entities/FollowCamera";
@@ -45,6 +46,8 @@ engine.entities.add(
     lookAtOffset: { x: 0, y: 1, z: 0 },
   }),
 );
+// Added after the camera, so it reads the position the camera reached this frame
+engine.entities.add(new WindStreaks(engine.camera));
 if (DebugManager.isEnabled) {
   engine.entities.add(new PhysicsDebug());
 }
