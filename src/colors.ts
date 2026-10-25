@@ -8,7 +8,7 @@ export const COLORS = {
   sky: 0xbfd9ff,
   hemisphereGround: 0x3a4a2a,
   ground: 0x329383,
-  torchLight: 0xff9a3c,
+  torchLight: 0xff6526,
   dirt: 0x7a5a3a,
   sand: 0xcdb284,
   debugWireframe: 0xff0000,

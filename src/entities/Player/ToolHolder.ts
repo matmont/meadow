@@ -36,6 +36,7 @@ export default class ToolHolder {
     if ("light" in tool) {
       this.#light.color.set(tool.light.color);
       this.#light.distance = tool.light.distance;
+      this.#light.decay = tool.light.decay;
       this.#light.intensity = tool.light.intensity;
       this.#flameCenter(object, this.#light.position);
       object.add(this.#light);

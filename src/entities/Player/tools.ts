@@ -6,6 +6,7 @@ export interface ToolLight {
   readonly color: ColorRepresentation;
   readonly intensity: number;
   readonly distance: number;
+  readonly decay: number;
 }
 
 export interface ToolDefinition {
@@ -24,7 +25,12 @@ export const TOOLS = [
     name: "Torch",
     key: "Digit3",
     node: "Torch",
-    light: { color: COLORS.torchLight, intensity: 4, distance: 6 },
+    light: {
+      color: COLORS.torchLight,
+      intensity: 4,
+      distance: 12,
+      decay: 1,
+    },
   },
 ] as const satisfies readonly ToolDefinition[];
 
