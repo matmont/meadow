@@ -1,7 +1,7 @@
 import type { Tool, ToolId } from "../../entities/Player/tools";
 import { UIComponent } from "../UIComponent";
 import { h } from "../dom";
-import { keyLabel } from "../keys";
+import { keyCap } from "../keys";
 import { renderToolIcons } from "./icons";
 import styles from "./ToolBar.module.css";
 
@@ -26,7 +26,7 @@ export default class ToolBar extends UIComponent {
         "div",
         { className: styles.slot },
         icon,
-        h("span", { className: styles.key }, keyLabel(tool.key)),
+        keyCap(styles.key, tool.key),
       );
       slot.title = tool.name;
       this.element.append(slot);

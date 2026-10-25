@@ -27,9 +27,10 @@ const vertexShader = /* glsl */ `
 
 const fragmentShader = /* glsl */ `
   uniform vec3 color;
+  uniform float opacity;
 
   void main() {
-    gl_FragColor = vec4(color, 0.1);
+    gl_FragColor = vec4(color, opacity);
   }
 `;
 
@@ -38,10 +39,12 @@ export const OUTLINE_MATERIAL = new ShaderMaterial({
   uniforms: {
     color: { value: new Color(COLORS.outline) },
     thickness: { value: 0.004 },
+    opacity: { value: 0.8 },
   },
   vertexShader,
   fragmentShader,
   side: BackSide,
+  transparent: true,
 });
 
 // Cloned models share their geometries, so each hull geometry is built once per source

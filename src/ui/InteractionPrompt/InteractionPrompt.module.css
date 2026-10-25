@@ -22,13 +22,5 @@
 }
 
 .key {
-  min-width: 20px;
-  padding: 0 5px;
-  border-radius: 4px;
-  background: var(--hud-key-bg);
-  color: var(--hud-key-text);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 20px;
-  text-align: center;
+  --keycap-size: 24px;
 }

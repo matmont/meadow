@@ -41,11 +41,11 @@
 .indicator {
   position: absolute;
   top: 50%;
-  width: 12px;
-  height: 12px;
+  width: 8px;
+  height: 8px;
   border: 2px solid var(--hud-text);
   border-radius: 50%;
-  background: var(--hud-accent);
+  background: transparent;
   box-shadow: 0 0 6px rgb(0 0 0 / 0.5);
   transform: translate(-50%, -50%);
 }

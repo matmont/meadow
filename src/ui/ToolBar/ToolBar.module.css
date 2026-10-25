@@ -36,16 +36,9 @@
 }
 
 .key {
+  --keycap-size: 18px;
+
   position: absolute;
   top: 3px;
-  left: 4px;
-  min-width: 14px;
-  padding: 0 3px;
-  border-radius: 3px;
-  background: var(--hud-key-bg);
-  color: var(--hud-key-text);
-  font-size: 10px;
-  font-weight: 700;
-  line-height: 14px;
-  text-align: center;
+  left: 3px;
 }

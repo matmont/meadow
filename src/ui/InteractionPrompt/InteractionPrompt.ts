@@ -3,7 +3,7 @@ import type { Camera } from "three";
 import type { KeyCode } from "../../InputManager";
 import { UIComponent } from "../UIComponent";
 import { h } from "../dom";
-import { keyLabel } from "../keys";
+import { keyCap, keyLabel } from "../keys";
 import styles from "./InteractionPrompt.module.css";
 
 export interface InteractionPromptSource {
@@ -24,7 +24,7 @@ export default class InteractionPrompt extends UIComponent {
   #onScreen = false;
 
   constructor(source: InteractionPromptSource, camera: Camera) {
-    const key = h("span", { className: styles.key });
+    const key = keyCap(styles.key);
     const label = h("span", { className: styles.label });
     super(h("div", { className: styles.prompt }, key, label));
     this.#source = source;

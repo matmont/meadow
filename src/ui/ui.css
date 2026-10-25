@@ -3,8 +3,11 @@
   --hud-accent: #e07a2c;
   --hud-panel: rgb(0 0 0 / 0.45);
   --hud-border: rgb(255 255 255 / 0.2);
-  --hud-key-bg: rgb(255 255 255 / 0.85);
-  --hud-key-text: #111;
+  --hud-key-highlight: #fff;
+  --hud-key-face: #e4e4e4;
+  --hud-key-side: #a8a8a8;
+  --hud-key-edge: rgb(0 0 0 / 0.45);
+  --hud-key-text: #222;
 
   position: fixed;
   inset: 0;

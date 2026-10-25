@@ -225,6 +225,9 @@ export default class InteractionManager {
       .add(OUTLINE_MATERIAL.uniforms.thickness, "value", 0, 0.02, 0.0005)
       .name("outline thickness");
     folder
+      .add(OUTLINE_MATERIAL.uniforms.opacity, "value", 0, 1, 0.05)
+      .name("outline opacity");
+    folder
       .add(InteractionManager.#debugState, "focused")
       .listen()
       .disable();

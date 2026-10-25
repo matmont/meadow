@@ -58,4 +58,4 @@ Nel mondo ci sono entità su cui il player può agire, spesso con un tool precis
 - Un'entità interagibile che crea geometrie e materiali propri può continuare a usare il `dispose()` base, perché i gusci del contorno non sono agganciati al momento del dispose.
 - Il primo focus su un modello calcola le normali smussate di ogni sua geometria. Per i modelli attuali è trascurabile; per modelli molto densi si potrà precalcolare al caricamento.
 - Il colpo che parte da `toolHit` usa l'oggetto a fuoco del frame precedente, perché il player si aggiorna prima del manager. Una differenza di un frame è irrilevante.
-- `outline thickness` e l'oggetto a fuoco sono nella cartella di debug "Interaction".
+- Il contorno è bianco semitrasparente (`opacity` 0,5, materiale `transparent` che scrive comunque la profondità). `outline thickness`, `outline opacity` e l'oggetto a fuoco sono nella cartella di debug "Interaction".
