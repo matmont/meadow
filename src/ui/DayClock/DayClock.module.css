@@ -1,0 +1,71 @@
+.panel {
+  --sunrise: #f6a27a;
+  --day: #ffe39a;
+  --sunset: #f07a3a;
+  --dusk: #6a4c8c;
+  --night: #1c2448;
+
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 220px;
+  padding: 8px 12px 6px;
+  border-radius: 8px;
+  background: var(--hud-panel);
+}
+
+.time {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
+}
+
+/* Left half is daytime (sunrise to sunset), right half is nighttime */
+.track {
+  position: relative;
+  height: 6px;
+  margin: 4px 0;
+  border-radius: 3px;
+  background: linear-gradient(
+    to right,
+    var(--sunrise),
+    var(--day) 20%,
+    var(--day) 35%,
+    var(--sunset) 50%,
+    var(--dusk) 62%,
+    var(--night) 80%
+  );
+}
+
+.indicator {
+  position: absolute;
+  top: 50%;
+  width: 12px;
+  height: 12px;
+  border: 2px solid var(--hud-text);
+  border-radius: 50%;
+  background: var(--hud-accent);
+  box-shadow: 0 0 6px rgb(0 0 0 / 0.5);
+  transform: translate(-50%, -50%);
+}
+
+.labels {
+  position: relative;
+  height: 14px;
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+.label {
+  position: absolute;
+  transform: translateX(-50%);
+}
+
+.label:first-child {
+  transform: none;
+}
+
+.label:last-child {
+  transform: translateX(-100%);
+}

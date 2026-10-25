@@ -53,3 +53,28 @@ Con la latitudine fissa a 45° l'emisfero sud ha le stagioni invertite. La longi
 ### Conseguenze
 - L'errore residuo dipende da quanto l'utente è lontano dalla città di riferimento del fuso. Di solito sono pochi gradi; è grande nei fusi molto estesi (per esempio `Asia/Shanghai` copre tutta la Cina, e a ovest il sole sorge ore dopo).
 - Un fuso nuovo, non presente nella tabella, usa il fallback finché non si rigenera il file.
+
+## 003 — Fase della giornata da alba e tramonto reali, mostrata nella HUD da `DayClock`
+
+- **Data:** 2026-10-25
+- **Stato:** accettata
+
+### Contesto
+Nella HUD lo stato del player (`PlayerStatus`: idle, walk, run…) non serviva a chi gioca ed è stato tolto. Al suo posto si vuole l'orario e un indicatore del momento della giornata: una linea con l'alba a sinistra, il tramonto al centro e la notte a destra.
+
+### Decisione
+- **La linea è un ciclo da un'alba alla successiva:** la metà sinistra è il giorno (alba → tramonto), la metà destra la notte (tramonto → alba successiva). Ogni metà è proporzionale al tempo trascorso nel proprio periodo, così il tramonto cade sempre al centro qualunque sia la stagione, e di notte l'indicatore continua a muoversi.
+- `DayNightCycle` espone `dayPhase` (da 0 a 1) e `minuteOfDay`, entrambi calcolati sul tempo simulato, quindi seguono anche i controlli di debug.
+- Alba e tramonto sono gli istanti in cui l'elevazione passa per 0°, lo stesso valore dello stop di illuminazione "Sunrise / sunset". Si trovano a partire dall'istante corrente, cercando a passi di 10 minuti indietro e avanti fino a un giorno, poi raffinando con la bisezione. Il periodo trovato resta in cache finché il tempo non ne esce o la latitudine non cambia: il calcolo avviene circa due volte al giorno.
+- Se entro un giorno il sole non attraversa l'orizzonte (giorno o notte polare), la fase resta a 0,25 o 0,75 e viene ricontrollata ogni ora.
+- `DayClock` (`src/ui/DayClock/`, slot `topLeft`) riceve il ciclo come `DayClockSource` e lega un solo primitivo, i minuti: quando cambiano, scrive l'orario `HH:MM` e sposta l'indicatore leggendo la fase. Il DOM si aggiorna quindi una volta al minuto; in un minuto l'indicatore si muoverebbe di molto meno di un pixel. La linea è un gradiente CSS dai colori dell'alba a quelli della notte.
+
+### Alternative scartate
+- **Linea sulle 24 ore (mezzanotte agli estremi):** semplice, ma alba e tramonto cambiano posizione con le stagioni e il tramonto non starebbe al centro come richiesto.
+- **Giorno da alba a tramonto e indicatore fermo a destra per tutta la notte:** di notte l'indicatore sarebbe fermo per molte ore.
+- **Formula analitica dell'angolo orario per alba e tramonto:** più precisa sulla carta, ma richiederebbe una seconda implementazione della posizione solare. La ricerca riusa `solarElevation()`, quindi alba e tramonto coincidono con la luce che si vede.
+
+### Conseguenze
+- `Player.state` resta, perché lo usano animazioni e debug, ma non è più mostrato nella HUD.
+- Le etichette della linea sono fisse ("Sunrise", "Sunset", "Night") e in inglese, come tutto il testo nel codice.
+- Se si cambia la definizione di alba e tramonto (per esempio -0,833° per la rifrazione), conviene cambiare insieme `HORIZON` e lo stop di illuminazione, così l'indicatore e la luce restano allineati.

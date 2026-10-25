@@ -19,7 +19,7 @@ There is no application framework, test runner, linter, or formatter configured.
 - `src/AudioManager.ts`: plays and stops sounds loaded by `LoaderManager`, mute state, and the "Audio" debug folder.
 - `src/UIManager.ts`: 2D HUD overlay lifecycle: layout slots inside `#ui`, mounting, per-frame binding sync, and teardown.
 - `src/particles/`: particle effects (`ParticleEffect` subclasses), each in its own folder (for example `src/particles/FootDust/`), plus the shared `ParticleSystem` and the CPU backend `InstancedParticles`.
-- `src/ui/`: HUD components (`UIComponent` subclasses), each in its own folder with its `*.module.css` (for example `src/ui/PlayerStatus/`), plus shared helpers (`dom.ts`, `ui.css`).
+- `src/ui/`: HUD components (`UIComponent` subclasses), each in its own folder with its `*.module.css` (for example `src/ui/DayClock/`), plus shared helpers (`dom.ts`, `ui.css`).
 - `.claude/adr/`: architecture decision records, one file per feature.
 - `public/`: source assets. URLs registered in `LoaderManager` are relative to this directory through `import.meta.env.BASE_URL`.
 - `dist/`: generated Vite output; it is ignored and must not be edited by hand.
@@ -83,7 +83,7 @@ Particle effects live in `src/particles/` and extend `ParticleEffect`, not `Enti
 The HUD is an HTML/CSS overlay (`#ui`) above the canvas, written in vanilla TypeScript with no UI framework. See `.claude/adr/hud-ui.md` for the reasoning.
 
 - Game state lives only in its owner (entity or manager). UI never copies or mirrors it and never writes to it.
-- A UI component receives its source in the constructor, typed as a minimal interface declared in the component's file (for example `PlayerStatusSource`), not as the concrete entity class.
+- A UI component receives its source in the constructor, typed as a minimal interface declared in the component's file (for example `DayClockSource`), not as the concrete entity class.
 - Keep the UI in sync with `bind(read, write)`: `UIManager` re-reads every binding each frame and calls `write` only when the value changed (`Object.is`). Bound values must be primitives, so comparisons are reliable and nothing is allocated per frame.
 - Add components with `UIManager.add(component, slot)`. Whoever adds a component tied to an entity removes it when that entity is destroyed.
 - Register DOM listeners with `{ signal: this.signal }` so they are removed on dispose.

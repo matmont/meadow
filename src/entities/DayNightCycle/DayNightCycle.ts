@@ -8,6 +8,10 @@ import { TIME_ZONE_COORDINATES } from "./timeZones";
 const HOUR_MS = 3_600_000;
 const DAY_MS = 24 * HOUR_MS;
 const DEG = Math.PI / 180;
+// Elevation of sunrise and sunset, the same as the matching lighting stop
+const HORIZON = 0;
+// Scan step when looking for sunrise and sunset; bisection then refines the crossing
+const CROSSING_SEARCH_STEP = 10 * 60_000;
 
 // Both default to the reference city of the user's time zone
 export interface DayNightCycleOptions {
@@ -79,6 +83,15 @@ export default class DayNightCycle extends Entity {
   readonly #settings = { realTime: true, speed: 0 };
   #time = Date.now();
   #elevation = 0;
+  // The daytime or nighttime around the simulated time, between two horizon crossings.
+  // Recomputed only when the time leaves it or the latitude changes
+  #periodStart = NaN;
+  #periodEnd = NaN;
+  #periodLatitude = NaN;
+  #isDaytime = false;
+  // Fixed phase while the sun never crosses the horizon (polar day or night)
+  #polarPhase: number | null = null;
+  #dayPhase = 0;
 
   constructor(
     sunLight: DirectionalLight,
@@ -100,6 +113,17 @@ export default class DayNightCycle extends Entity {
 
   get elevation(): number {
     return this.#elevation;
+  }
+
+  // 0 at sunrise, 0.5 at sunset, 1 at the next sunrise. Daytime fills the first half and
+  // nighttime the second, whatever their actual lengths
+  get dayPhase(): number {
+    return this.#dayPhase;
+  }
+
+  // Whole minutes since local midnight of the simulated time
+  get minuteOfDay(): number {
+    return Math.floor(this.hour * 60);
   }
 
   // Local clock hour of the simulated time
@@ -135,10 +159,12 @@ export default class DayNightCycle extends Entity {
     folder.add(this.#settings, "speed", 0, 4, 0.01).name("speed (h/s)");
     folder.add(this, "latitude", -90, 90, 0.1);
     folder.add(this, "elevation").name("sun elevation").listen().disable();
+    folder.add(this, "dayPhase").name("day phase").listen().disable();
   }
 
   #apply(): void {
     this.#elevation = solarElevation(this.#time, this.latitude, this.#longitude);
+    this.#updateDayPhase();
 
     let index = 1;
     while (index < STOPS.length - 1 && STOPS[index].elevation < this.#elevation) {
@@ -168,6 +194,87 @@ export default class DayNightCycle extends Entity {
     this.#background.lerpColors(from.fogColor, to.fogColor, t);
     this.#fog.color.copy(this.#background);
   }
+
+  #updateDayPhase(): void {
+    const time = this.#time;
+    if (
+      !(time >= this.#periodStart && time < this.#periodEnd) ||
+      this.latitude !== this.#periodLatitude
+    ) {
+      this.#findPeriod();
+    }
+    if (this.#polarPhase !== null) {
+      this.#dayPhase = this.#polarPhase;
+      return;
+    }
+    const progress =
+      (time - this.#periodStart) / (this.#periodEnd - this.#periodStart);
+    this.#dayPhase = this.#isDaytime ? progress * 0.5 : 0.5 + progress * 0.5;
+  }
+
+  #findPeriod(): void {
+    const time = this.#time;
+    const latitude = this.latitude;
+    const start = findHorizonCrossing(
+      time,
+      -CROSSING_SEARCH_STEP,
+      latitude,
+      this.#longitude,
+    );
+    const end = findHorizonCrossing(
+      time,
+      CROSSING_SEARCH_STEP,
+      latitude,
+      this.#longitude,
+    );
+    this.#periodLatitude = latitude;
+
+    if (start === null || end === null) {
+      // No sunrise or sunset within a day: middle of the day or of the night, checked again
+      // in an hour
+      this.#polarPhase = this.#elevation > HORIZON ? 0.25 : 0.75;
+      this.#periodStart = time;
+      this.#periodEnd = time + HOUR_MS;
+      return;
+    }
+    this.#polarPhase = null;
+    this.#periodStart = start;
+    this.#periodEnd = end;
+    this.#isDaytime =
+      solarElevation((start + end) / 2, latitude, this.#longitude) > HORIZON;
+  }
+}
+
+// Finds the sunrise or sunset nearest to `time`, searching forward when `step` is positive
+// and backward when it is negative. Null when there is none within a day
+function findHorizonCrossing(
+  time: number,
+  step: number,
+  latitude: number,
+  longitude: number,
+): number | null {
+  let from = time;
+  let fromAbove = solarElevation(from, latitude, longitude) > HORIZON;
+  for (let searched = 0; searched < DAY_MS; searched += Math.abs(step)) {
+    const to = from + step;
+    const toAbove = solarElevation(to, latitude, longitude) > HORIZON;
+    if (toAbove !== fromAbove) {
+      // Bisection: 20 halvings of a 10-minute step are well below a second
+      let a = from;
+      let b = to;
+      for (let index = 0; index < 20; index++) {
+        const middle = (a + b) / 2;
+        const middleAbove =
+          solarElevation(middle, latitude, longitude) > HORIZON;
+        if (middleAbove === fromAbove) a = middle;
+        else b = middle;
+      }
+      return (a + b) / 2;
+    }
+    from = to;
+    fromAbove = toAbove;
+  }
+  return null;
 }
 
 function lerp(a: number, b: number, t: number): number {

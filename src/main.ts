@@ -16,7 +16,7 @@ import Sun from "./entities/Sun";
 import DayNightCycle from "./entities/DayNightCycle/DayNightCycle";
 import AudioManager from "./AudioManager";
 import UIManager from "./UIManager";
-import PlayerStatus from "./ui/PlayerStatus/PlayerStatus";
+import DayClock from "./ui/DayClock/DayClock";
 import ToolBar from "./ui/ToolBar/ToolBar";
 import { COLORS } from "./colors";
 
@@ -67,9 +67,11 @@ const fog = new Fog(COLORS.sky, 50, 60);
 engine.scene.background = sky;
 engine.scene.fog = fog;
 // Also owns the sky/ground fill light, so faces the sun does not reach are not pitch black
-engine.entities.add(new DayNightCycle(sun.light, sky, fog));
+const dayNightCycle = engine.entities.add(
+  new DayNightCycle(sun.light, sky, fog),
+);
 
-UIManager.add(new PlayerStatus(player), "topLeft");
+UIManager.add(new DayClock(dayNightCycle), "topLeft");
 UIManager.add(new ToolBar(player), "bottomLeft");
 
 engine.start();
