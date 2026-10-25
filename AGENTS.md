@@ -19,6 +19,7 @@ There is no application framework, test runner, linter, or formatter configured.
 - `src/AudioManager.ts`: plays and stops sounds loaded by `LoaderManager`, mute state, and the "Audio" debug folder.
 - `src/UIManager.ts`: 2D HUD overlay lifecycle: layout slots inside `#ui`, mounting, per-frame binding sync, and teardown.
 - `src/particles/`: particle effects (`ParticleEffect` subclasses), each in its own folder (for example `src/particles/FootDust/`), plus the shared `ParticleSystem` and the CPU backend `InstancedParticles`.
+- `src/interaction/`: `Interactable` (owned by interactable entities), `InteractionManager` (focus selection, action dispatch), and the inverted-hull `Outline`.
 - `src/ui/`: HUD components (`UIComponent` subclasses), each in its own folder with its `*.module.css` (for example `src/ui/DayClock/`), plus shared helpers (`dom.ts`, `ui.css`).
 - `.claude/adr/`: architecture decision records, one file per feature.
 - `public/`: source assets. URLs registered in `LoaderManager` are relative to this directory through `import.meta.env.BASE_URL`.
@@ -78,6 +79,15 @@ Particle effects live in `src/particles/` and extend `ParticleEffect`, not `Enti
 - CPU effects extend `InstancedParticles`: they own their geometry and material, implement `emit()`, and fill the particles returned by `spawn()`. The pool is preallocated, so never allocate per particle or per frame.
 - A shader-driven effect would be another `ParticleEffect` subclass with the same lifecycle.
 
+## Interactions
+
+Entities the player can act on (for example hitting a `Tree` with the axe) own an `Interactable` and register it with the static `InteractionManager`. See `.claude/adr/interaction.md`.
+
+- Declare the actions (`label`, optional `tool`), the reach `radius`, the `promptHeight`, and `onAction` in the entity's constructor. Call `InteractionManager.register()` in `onAdded()` and `unregister()` in `onRemoved()`.
+- `InteractionManager` picks one focused target by distance and facing, highlights it with a white outline, and exposes the data for `InteractionPrompt`. Tool actions run on the player's `toolHit` event; tool-less actions run on `INTERACT_KEY` (`KeyE`).
+- `main.ts` calls `InteractionManager.init(player)` after creating the player, and calls `InteractionManager.dispose()` in the HMR cleanup right after `engine.dispose()`.
+- Outline hull geometries share the source's buffers and are cached for the app's lifetime: never dispose them. Hulls are attached only while highlighted.
+
 ## HUD / 2D UI
 
 The HUD is an HTML/CSS overlay (`#ui`) above the canvas, written in vanilla TypeScript with no UI framework. See `.claude/adr/hud-ui.md` for the reasoning.
@@ -85,7 +95,7 @@ The HUD is an HTML/CSS overlay (`#ui`) above the canvas, written in vanilla Type
 - Game state lives only in its owner (entity or manager). UI never copies or mirrors it and never writes to it.
 - A UI component receives its source in the constructor, typed as a minimal interface declared in the component's file (for example `DayClockSource`), not as the concrete entity class.
 - Keep the UI in sync with `bind(read, write)`: `UIManager` re-reads every binding each frame and calls `write` only when the value changed (`Object.is`). Bound values must be primitives, so comparisons are reliable and nothing is allocated per frame.
-- Add components with `UIManager.add(component, slot)`. Whoever adds a component tied to an entity removes it when that entity is destroyed.
+- Add components with `UIManager.add(component, slot)`. Elements anchored to a 3D point go in the full-screen `world` slot, project their anchor in `update()`, and bind whole-pixel coordinates. Whoever adds a component tied to an entity removes it when that entity is destroyed.
 - Register DOM listeners with `{ signal: this.signal }` so they are removed on dispose.
 - The overlay has `pointer-events: none`; only interactive elements opt back in with `pointer-events: auto`.
 - Style each component with a co-located CSS module; global HUD styles go in `src/ui/ui.css`.

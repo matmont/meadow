@@ -18,6 +18,8 @@ import AudioManager from "./AudioManager";
 import UIManager from "./UIManager";
 import DayClock from "./ui/DayClock/DayClock";
 import ToolBar from "./ui/ToolBar/ToolBar";
+import InteractionPrompt from "./ui/InteractionPrompt/InteractionPrompt";
+import InteractionManager from "./interaction/InteractionManager";
 import { COLORS } from "./colors";
 
 const canvas = document.querySelector<HTMLCanvasElement>("#canvas");
@@ -38,6 +40,7 @@ const engine = new Engine({ canvas });
 engine.entities.add(new Tree({ x: 3, y: 0, z: -2 }));
 engine.entities.add(new Campfire({ x: 5, y: 0, z: -0.5 }));
 const player = engine.entities.add(new Player(new Vector3(0, 10, 0)));
+InteractionManager.init(player);
 engine.entities.add(new Ground(player.object));
 engine.particles.add(new FootDust(player));
 engine.entities.add(
@@ -73,10 +76,12 @@ const dayNightCycle = engine.entities.add(
 
 UIManager.add(new DayClock(dayNightCycle), "topLeft");
 UIManager.add(new ToolBar(player), "bottomLeft");
+UIManager.add(new InteractionPrompt(InteractionManager, engine.camera), "world");
 
 engine.start();
 import.meta.hot?.dispose(() => {
   engine.dispose();
+  InteractionManager.dispose();
   InputManager.dispose();
   PhysicsManager.dispose();
   AudioManager.dispose();

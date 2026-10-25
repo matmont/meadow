@@ -1,6 +1,7 @@
 import RAPIER from "@dimforge/rapier3d-compat";
 import type GUI from "lil-gui";
 import { EventDispatcher, Group, Quaternion, Vector3 } from "three";
+import type { Vector3Like } from "three";
 import { Entity } from "../../Entity";
 import LoaderManager from "../../LoaderManager";
 import InputManager from "../../InputManager";
@@ -8,7 +9,7 @@ import PhysicsManager from "../../PhysicsManager";
 import CharacterAnimator from "../../CharacterAnimator";
 import AudioManager from "../../AudioManager";
 import ToolHolder from "./ToolHolder";
-import { TOOLS } from "./tools";
+import { TOOL_USE_KEY, TOOLS } from "./tools";
 import type { Tool, ToolId } from "./tools";
 
 type PlayerState = "idle" | "walk" | "run" | "jump" | "toolUse";
@@ -37,6 +38,8 @@ export default class Player extends Entity {
   #isUsingTool = false;
   #toolUseTime = 0;
   #toolHits = 0;
+  readonly #facingPoint = new Vector3();
+  #hasFacingPoint = false;
 
   readonly #direction = new Vector3();
   readonly #movement = new Vector3();
@@ -129,6 +132,13 @@ export default class Player extends Entity {
     return this.isRunning ? "run" : "walk";
   }
 
+  // Set by whoever knows what the tool is aimed at (the InteractionManager); applied only
+  // while the tool is in use, since the player cannot move then
+  faceTowards(point: Vector3Like | null): void {
+    this.#hasFacingPoint = point !== null;
+    if (point) this.#facingPoint.copy(point);
+  }
+
   override onAdded(): void {
     this.#animator.play(this.state);
   }
@@ -136,7 +146,18 @@ export default class Player extends Entity {
   override update(delta: number, _elapsed: number): void {
     this.#readInput();
     this.#move(delta);
-    if (this.isMoving) this.#turn(delta);
+    if (this.isMoving) {
+      this.#turn(Math.atan2(this.#direction.x, this.#direction.z), delta);
+    } else if (this.#isUsingTool && this.#hasFacingPoint) {
+      const position = this.object.position;
+      this.#turn(
+        Math.atan2(
+          this.#facingPoint.x - position.x,
+          this.#facingPoint.z - position.z,
+        ),
+        delta,
+      );
+    }
     this.#animator.play(this.state);
     this.#animator.update(delta);
     this.#updateToolHit();
@@ -168,7 +189,7 @@ export default class Player extends Entity {
     }
     this.#toolHolder.equip(this.#selectedTool);
 
-    this.#isUsingTool = InputManager.isAnyPressed("MouseLeft", "KeyJ");
+    this.#isUsingTool = InputManager.isAnyPressed("MouseLeft", TOOL_USE_KEY);
     if (this.#isUsingTool && !this.isJumping) {
       this.#direction.set(0, 0, 0);
       return;
@@ -254,8 +275,7 @@ export default class Player extends Entity {
     this.object.position.set(next.x, next.y - HEIGHT / 2, next.z);
   }
 
-  #turn(delta: number): void {
-    const yaw = Math.atan2(this.#direction.x, this.#direction.z);
+  #turn(yaw: number, delta: number): void {
     this.#targetQuaternion.setFromAxisAngle(Player.#UP, yaw);
     const alpha = 1 - Math.exp(-this.#turnSpeed * delta);
     this.object.quaternion.slerp(this.#targetQuaternion, alpha);

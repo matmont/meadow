@@ -3,13 +3,16 @@ import { h } from "./ui/dom";
 import type { UIComponent } from "./ui/UIComponent";
 
 export type UISlot =
+  | "world"
   | "topLeft"
   | "topRight"
   | "bottomLeft"
   | "bottomRight"
   | "center";
 
+// Order-matter, so world-anchored elements stay below the rest of the HUD
 const SLOTS: readonly UISlot[] = [
+  "world",
   "topLeft",
   "topRight",
   "bottomLeft",

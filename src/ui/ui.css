@@ -21,6 +21,13 @@
   gap: 8px;
 }
 
+/* Full-screen layer for elements anchored to points in the 3D world; children position
+   themselves in pixels from the top-left corner */
+.ui-slot--world {
+  inset: 0;
+  display: block;
+}
+
 .ui-slot--topLeft {
   top: 16px;
   left: 16px;

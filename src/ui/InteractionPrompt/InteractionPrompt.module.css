@@ -1,0 +1,34 @@
+.prompt {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 4px;
+  border: 1px solid var(--hud-border);
+  border-radius: 6px;
+  background: var(--hud-panel);
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translate(calc(var(--x, 0px) - 50%), calc(var(--y, 0px) - 100%));
+  transition: opacity 0.15s;
+}
+
+.visible {
+  opacity: 1;
+}
+
+.key {
+  min-width: 20px;
+  padding: 0 5px;
+  border-radius: 4px;
+  background: var(--hud-key-bg);
+  color: var(--hud-key-text);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 20px;
+  text-align: center;
+}

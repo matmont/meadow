@@ -17,6 +17,9 @@ export interface ToolDefinition {
   readonly light?: ToolLight;
 }
 
+// Held together with the left mouse button to use the selected tool
+export const TOOL_USE_KEY: KeyCode = "KeyJ";
+
 export const TOOLS = [
   { id: "pickaxe", name: "Pickaxe", key: "Digit1", node: "Pickaxe" },
   { id: "axe", name: "Axe", key: "Digit2", node: "Axe" },

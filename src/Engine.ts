@@ -2,6 +2,7 @@ import { PerspectiveCamera, Scene, Timer, WebGLRenderer } from "three";
 import type { WebGLRendererParameters } from "three";
 import DebugManager from "./DebugManager";
 import { EntityManager } from "./EntityManager";
+import InteractionManager from "./interaction/InteractionManager";
 import { ParticleSystem } from "./particles/ParticleSystem";
 import PhysicsManager from "./PhysicsManager";
 import UIManager from "./UIManager";
@@ -102,6 +103,8 @@ export class Engine {
     const delta = this.#timer.getDelta();
     const elapsed = this.#timer.getElapsed();
     this.entities.update(delta, elapsed);
+    // After entities, so the focus is chosen from where the player ended up this frame
+    InteractionManager.update();
     // After entities, so effects read the positions they reached this frame
     this.particles.update(delta, elapsed);
     DebugManager.update(time);

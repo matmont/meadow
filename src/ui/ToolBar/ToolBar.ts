@@ -1,7 +1,7 @@
-import type { KeyCode } from "../../InputManager";
 import type { Tool, ToolId } from "../../entities/Player/tools";
 import { UIComponent } from "../UIComponent";
 import { h } from "../dom";
+import { keyLabel } from "../keys";
 import { renderToolIcons } from "./icons";
 import styles from "./ToolBar.module.css";
 
@@ -39,8 +39,4 @@ export default class ToolBar extends UIComponent {
       );
     }
   }
-}
-
-function keyLabel(code: KeyCode): string {
-  return code.replace(/^(Digit|Key|Numpad)/, "");
 }

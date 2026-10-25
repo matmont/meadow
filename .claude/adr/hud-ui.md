@@ -26,3 +26,22 @@ Serve una HUD 2D (indicatori, pannelli, prompt) che sia modulare, con un file pe
 - Chi aggiunge un componente legato a un'entità deve rimuoverlo quando l'entità viene distrutta.
 - Ogni binding costa una lettura per frame: va bene per decine di binding, non per migliaia di elementi (per liste lunghe servirà un approccio diverso, con un nuovo ADR).
 - Uno stato davvero globale, che non appartiene a nessuna entità, va messo in un manager proprietario e letto nello stesso modo. Un eventuale store dedicato richiede un nuovo ADR.
+
+## 002 — Slot `world` per elementi ancorati al mondo 3D
+
+- **Data:** 2026-10-25
+- **Stato:** accettata. Risolve il caso degli elementi legati a punti del mondo 3D, lasciato aperto nella [001](#001--dom-overlay-vanilla-ts-components-state-read-directly-from-its-owner).
+
+### Contesto
+Il prompt di interazione (vedi [interaction.md](interaction.md)) deve comparire sopra un oggetto della scena e seguirlo sullo schermo. Gli slot esistenti sono fissi negli angoli e al centro.
+
+### Decisione
+- `UIManager` ha un nuovo slot `world`: un layer a tutto schermo senza layout, creato per primo, così resta sotto il resto della HUD. I figli si posizionano da soli in pixel rispetto all'angolo in alto a sinistra.
+- Un componente ancorato al mondo riceve la camera nel constructor e in `update()` proietta il suo punto di ancoraggio. Arrotonda la posizione ai pixel interi, così i binding scrivono solo quando l'elemento si sposta davvero sullo schermo. La posizione si applica come variabili CSS `--x`/`--y`, usate dal `transform` nel CSS module, con un binding numerico ciascuna.
+
+### Alternative scartate
+- **Sprite o `CSS2DRenderer` di three.js:** il primo richiederebbe di ridisegnare testo e stile in WebGL. Il secondo è un secondo renderer da tenere allineato a resize e camera, e porterebbe la UI fuori da `UIManager` e dal suo ciclo di vita.
+- **Scrivere `transform` come stringa in un solo binding:** creerebbe una stringa a ogni frame solo per confrontarla. Due numeri non allocano.
+
+### Conseguenze
+- Con molti elementi ancorati (per esempio etichette su decine di oggetti) la proiezione per componente e i binding per frame andranno rivalutati.

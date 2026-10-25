@@ -13,5 +13,6 @@ export const COLORS = {
   wind: 0xffffff,
   dirt: 0x7a5a3a,
   sand: 0xcdb284,
+  outline: 0xffffff,
   debugWireframe: 0xff0000,
 } as const satisfies Record<string, ColorRepresentation>;
