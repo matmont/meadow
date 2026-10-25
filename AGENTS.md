@@ -67,7 +67,7 @@ Resource ownership is important:
 - Explicitly dispose non-mesh resources such as cloned textures, animation mixers, light shadow resources, helpers, Rapier bodies/controllers, and event listeners.
 - Remove Rapier objects before `PhysicsManager.dispose()` runs.
 
-The frame loop currently updates entities, steps Rapier, syncs the UI, and then renders. Consider that ordering before changing physics synchronization. Clamp or otherwise protect simulation code from unusually large frame deltas, following `PhysicsManager.step()` where applicable. Avoid needless allocations in per-frame `update()` methods; reusable vectors/quaternions are kept as fields throughout the codebase.
+The frame loop currently updates entities, steps Rapier, syncs the UI, and then renders. Consider that ordering before changing physics synchronization. `Engine` already clamps `delta` to `[0, 0.1]` seconds and builds `elapsed` from the clamped deltas (see `.claude/adr/frame-timing.md`); a simulation that needs a tighter bound clamps it itself, as `PhysicsManager.step()` does. Avoid needless allocations in per-frame `update()` methods; reusable vectors/quaternions are kept as fields throughout the codebase.
 
 ## Particles
 

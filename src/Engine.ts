@@ -8,6 +8,10 @@ import PhysicsManager from "./PhysicsManager";
 import UIManager from "./UIManager";
 import { resizeRendererToDisplaySize } from "./utils";
 
+// Longest frame the simulation advances by: below 10 FPS the game slows down instead of
+// letting movement jump through colliders
+const MAX_DELTA = 0.1;
+
 export interface EngineOptions {
   canvas: HTMLCanvasElement;
   maxFps?: number;
@@ -25,6 +29,7 @@ export class Engine {
   readonly #maxPixelCount: number | undefined;
   #frameInterval = 0;
   #lastFrameTime = 0;
+  #elapsed = 0;
   #running = false;
   #disposed = false;
 
@@ -68,6 +73,7 @@ export class Engine {
 
     this.#running = true;
     this.#lastFrameTime = 0;
+    this.#elapsed = 0;
     this.#timer.reset();
     DebugManager.attachScene(this.scene);
     console.log(this.entities);
@@ -100,8 +106,12 @@ export class Engine {
     this.#timer.update(time);
 
     this.#resize();
-    const delta = this.#timer.getDelta();
-    const elapsed = this.#timer.getElapsed();
+    // reset() reads performance.now(), but the first rAF timestamp can be older when the main
+    // thread was busy (loading, shader compilation): the first delta can then be negative
+    const delta = Math.min(Math.max(this.#timer.getDelta(), 0), MAX_DELTA);
+    // Sum of the clamped deltas, so elapsed stays in step with what was simulated
+    this.#elapsed += delta;
+    const elapsed = this.#elapsed;
     this.entities.update(delta, elapsed);
     // After entities, so the focus is chosen from where the player ended up this frame
     InteractionManager.update();
