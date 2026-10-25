@@ -26,7 +26,7 @@ export default class DebugManager {
 
   static get gui(): GUI {
     if (!DebugManager.#gui) {
-      DebugManager.#gui = new GUI({ width: 300 });
+      DebugManager.#gui = new GUI({ width: 300, title: "Game Engine" });
       if (!DebugManager.isEnabled) DebugManager.#gui.hide();
     }
     return DebugManager.#gui;
