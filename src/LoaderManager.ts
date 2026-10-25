@@ -114,6 +114,7 @@ const ASSETS = {
       scale: 3,
       nonMetallic: true,
     },
+    campfire: { format: "gltf", url: "models/campfire/campfire.glb" },
     explorer: { format: "gltf", url: "models/characters/character.glb" },
     tools: { format: "gltf", url: "models/tools/character_tools.glb" },
   },

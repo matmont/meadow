@@ -3,6 +3,7 @@ import { Engine } from "./Engine";
 import Ground from "./entities/World/Ground";
 import FootDust from "./particles/FootDust/FootDust";
 import Tree from "./entities/Tree";
+import Campfire from "./entities/Campfire";
 import LoaderManager from "./LoaderManager";
 import Player from "./entities/Player/Player";
 import FollowCamera from "./entities/FollowCamera";
@@ -35,6 +36,7 @@ UIManager.init(uiRoot);
 
 const engine = new Engine({ canvas });
 engine.entities.add(new Tree({ x: 3, y: 0, z: -2 }));
+engine.entities.add(new Campfire({ x: 5, y: 0, z: -0.5 }));
 engine.entities.add(new ShaderPlane({ x: -3, y: 1, z: -2 }));
 const player = engine.entities.add(new Player(new Vector3(0, 10, 0)));
 engine.entities.add(new Ground(player.object));

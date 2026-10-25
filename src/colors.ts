@@ -9,6 +9,7 @@ export const COLORS = {
   hemisphereGround: 0x3a4a2a,
   ground: 0x329383,
   torchLight: 0xff6526,
+  campfireLight: 0xff7a2e,
   dirt: 0x7a5a3a,
   sand: 0xcdb284,
   debugWireframe: 0xff0000,

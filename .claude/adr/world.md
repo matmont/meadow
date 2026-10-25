@@ -52,3 +52,26 @@ Con il prato a chunk le piante caricate sono circa 430 mesh. Ognuna era un clone
 - Le draw call della vegetazione dipendono solo da quante mesh hanno i modelli usati (oggi 22), non da quante piante ci sono. Aumentare densità o raggio costa memoria e vertici, non draw call.
 - Le piante non sono più oggetti singoli nella scena: per interagire con una pianta (raccoglierla, tagliarla) bisognerà lavorare sul suo `Placement` e riscrivere le istanze.
 - Il frustum culling vale per tutto l'`InstancedMesh`, non per la singola pianta: le istanze fuori schermo vengono comunque processate dalla GPU.
+
+## 003 — Un solo falò come punto di riferimento della "casa" iniziale
+
+- **Data:** 2026-10-25
+- **Stato:** accettata
+
+### Contesto
+Si aggiunge il falò (`public/models/campfire/campfire.glb`): sassi, tronchi, braci, fiamme e scintille, la clip `Burn` che anima fiamme e scintille, e un nodo vuoto `FireLight` che indica dove mettere la luce. Il falò è uno solo: serve al giocatore per riconoscere il suo accampamento iniziale.
+
+### Decisione
+- Un'entità `Campfire` (`src/entities/Campfire.ts`), costruita come `Tree`: un clone del modello con `LoaderManager.instantiate()`, posizione e rotazione nel costruttore, un collider cilindrico fisso che copre sassi e tronchi.
+- Un `AnimationMixer` sul clone riproduce `Burn` in loop.
+- Una `PointLight` agganciata al nodo `FireLight`, con un tremolio uguale a quello della torcia. Di notte rende l'accampamento visibile da lontano.
+- Fiamme, braci e scintille (materiali con emissive non nero) non proiettano e non ricevono ombre.
+- `dispose()` non chiama `super.dispose()`: geometrie e materiali sono condivisi con il modello in cache.
+- In `main.ts` il falò sta vicino all'albero, a pochi metri dal punto di partenza.
+
+### Alternative scartate
+- **`InstancedMesh` per i falò, come per la vegetazione:** utile solo con molti falò. Con uno solo aggiunge un template animato, la riscrittura delle istanze a ogni frame e una luce per falò da gestire a parte.
+
+### Conseguenze
+- Il falò costa circa 17 draw call più il pass delle ombre: trascurabile per un oggetto unico.
+- Se in futuro servono molti falò (per esempio accampamenti sparsi nei chunk), andranno istanziati con un nuovo ADR, decidendo anche quante luci tenere accese.
