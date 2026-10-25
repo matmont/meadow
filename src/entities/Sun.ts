@@ -107,7 +107,6 @@ export default class Sun extends Entity {
 
   override onDebugGuiCreate(folder: GUI): void {
     const shadow = this.light.shadow;
-    folder.add(this.light, "intensity", 0, 10, 0.1);
     folder.add(this, "shadowSize", 2, 50, 1).name("shadow size");
     folder.add(shadow, "bias", -0.005, 0.005, 0.0001);
     folder.add(shadow, "normalBias", 0, 0.2, 0.001).name("normal bias");

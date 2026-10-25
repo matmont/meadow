@@ -1,4 +1,4 @@
-import { Color, Fog, HemisphereLight, Vector3 } from "three";
+import { Color, Fog, Vector3 } from "three";
 import { Engine } from "./Engine";
 import Ground from "./entities/World/Ground";
 import FootDust from "./particles/FootDust/FootDust";
@@ -11,6 +11,7 @@ import PhysicsManager from "./PhysicsManager";
 import PhysicsDebug from "./entities/PhysicsDebug";
 import DebugManager from "./DebugManager";
 import Sun from "./entities/Sun";
+import DayNightCycle from "./entities/DayNightCycle/DayNightCycle";
 import AudioManager from "./AudioManager";
 import ShaderPlane from "./entities/ShaderPlane/ShaderPlane";
 import UIManager from "./UIManager";
@@ -50,18 +51,20 @@ if (DebugManager.isEnabled) {
 
 // The follow camera looks towards -Z and sees much more ground ahead of the player than
 // behind: shift the shadow frustum forward so it covers what is on screen
-engine.entities.add(
+const sun = engine.entities.add(
   new Sun(player.object, {
     focusOffset: { x: 0, y: 0, z: -8 },
     shadowSize: 15,
   }),
 );
-// Sky/ground fill so faces the sun does not reach are not pitch black
-engine.scene.add(new HemisphereLight(COLORS.sky, COLORS.hemisphereGround, 0.5));
 // Hides where the ground plane ends and where vegetation chunks appear; distances are from
 // the camera, which sits about 14m from the player
-engine.scene.background = new Color(COLORS.sky);
-engine.scene.fog = new Fog(COLORS.sky, 30, 60);
+const sky = new Color(COLORS.sky);
+const fog = new Fog(COLORS.sky, 50, 60);
+engine.scene.background = sky;
+engine.scene.fog = fog;
+// Also owns the sky/ground fill light, so faces the sun does not reach are not pitch black
+engine.entities.add(new DayNightCycle(sun.light, sky, fog));
 
 UIManager.add(new PlayerStatus(player), "topLeft");
 UIManager.add(new ToolBar(player), "bottomLeft");
