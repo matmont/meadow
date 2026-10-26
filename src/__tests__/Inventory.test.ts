@@ -1,6 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
-import Inventory, { RESOURCE_IDS } from "./Inventory";
-import type { ResourceId } from "./Inventory";
+import Inventory, { RESOURCE_IDS } from "../Inventory";
+import type { ResourceId } from "../Inventory";
 
 // Compile-time complete list of `ResourceId`: adding or removing a member of the union
 // fails `tsc` here until this record is updated, and the runtime test below then checks

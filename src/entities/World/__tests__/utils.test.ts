@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createSeededRandom } from "./utils";
+import { createSeededRandom } from "../utils";
 
 function take(random: () => number, count: number): number[] {
   return Array.from({ length: count }, () => random());
