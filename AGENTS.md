@@ -22,8 +22,8 @@ Vitest is the test runner (see [Tests](#tests)). There is no application framewo
 - `src/particles/`: particle effects (`ParticleEffect` subclasses), each in its own folder (for example `src/particles/FootDust/`), plus the shared `ParticleSystem` and the CPU backend `InstancedParticles`.
 - `src/interaction/`: `Interactable` (owned by interactable entities), `InteractionManager` (focus selection, action dispatch), and the inverted-hull `Outline`.
 - `src/ui/`: HUD components (`UIComponent` subclasses), each in its own folder with its `*.module.css` (for example `src/ui/DayClock/`), plus shared helpers (`dom.ts`, `ui.css`).
-- `src/**/*.test.ts`: unit tests, next to the module they test.
-- `tests/integration/`: integration tests that exercise several modules together (for example Rapier with `PhysicsManager`).
+- `src/**/__tests__/`: unit tests (`*.test.ts`), in a `__tests__/` directory next to the module they test.
+- `tests/integration/`: integration tests that exercise several modules together (for example Rapier with `PhysicsManager`); `tests/e2e/` is reserved for future end-to-end tests.
 - `vitest.config.ts`: test configuration; it extends `vite.config.ts` and defines the `unit` and `integration` projects.
 - `.claude/adr/`: architecture decision records, one file per feature.
 - `public/`: source assets. URLs registered in `LoaderManager` are relative to this directory through `import.meta.env.BASE_URL`.
@@ -55,8 +55,9 @@ Do not add a second lockfile or silently switch package managers.
 
 Vitest reuses the Vite config and toolchain. See `.claude/adr/testing.md`.
 
-- **Unit tests** cover pure logic and live next to the module as `src/**/*.test.ts` (for example `src/entities/World/chunks.test.ts`).
-- **Integration tests** exercise several modules together and live in `tests/integration/**/*.test.ts`. Rapier works in Node: `await PhysicsManager.init()` in `beforeAll`, remove every body and collider the test creates, and call `PhysicsManager.dispose()` in `afterAll` (see `tests/integration/physics.test.ts`).
+- **Unit tests** cover pure logic and live in a `__tests__/` directory next to the source file they test, with the same base name: `src/entities/World/chunks.ts` is tested by `src/entities/World/__tests__/chunks.test.ts`, a module directly in `src/` such as `src/Foo.ts` by `src/__tests__/Foo.test.ts`. Write one test file per source file. Fixtures used only by unit tests go in `__tests__/fixtures/`. The `unit` project only collects `src/**/__tests__/**/*.test.ts`, so a `*.test.ts` file elsewhere under `src/` is not run.
+- **Integration tests** exercise several modules together and live in `tests/integration/**/*.test.ts`, with their fixtures in `tests/integration/fixtures/`. Rapier works in Node: `await PhysicsManager.init()` in `beforeAll`, remove every body and collider the test creates, and call `PhysicsManager.dispose()` in `afterAll` (see `tests/integration/physics.test.ts`).
+- **End-to-end tests** do not exist yet; when added, they go in `tests/e2e/`.
 - The default environment is `node`, with no DOM. A test that really needs one adds `happy-dom` (or `jsdom`) as a devDependency and opts in per file with a `// @vitest-environment happy-dom` comment on its first line. Prefer testing logic that does not touch the DOM or WebGL.
 - Import test APIs explicitly (`import { describe, expect, it } from "vitest";`); globals are not enabled.
 - Test files follow the same code style and strict `tsconfig` checks as the rest of the code. They are never imported by `main.ts`, so they never reach the production bundle.
@@ -168,4 +169,4 @@ Useful current controls are WASD for movement, left Shift for running, Space for
 
 `yarn build` and `yarn test` currently pass; a failure in either is a regression.
 
-- `chunkSeed(x, z)` returns the same seed as `chunkSeed(-x, -z)` for many chunks (for example `(1, 1)` and `(-1, -1)`), so those chunks get the same layout. `src/entities/World/chunks.test.ts` records it as an expected failure (`it.fails`); remove `.fails` when the hash is fixed.
+- `chunkSeed(x, z)` returns the same seed as `chunkSeed(-x, -z)` for many chunks (for example `(1, 1)` and `(-1, -1)`), so those chunks get the same layout. `src/entities/World/__tests__/chunks.test.ts` records it as an expected failure (`it.fails`); remove `.fails` when the hash is fixed.
