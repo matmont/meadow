@@ -57,7 +57,7 @@ Vitest reuses the Vite config and toolchain. See `.claude/adr/testing.md`.
 
 - **Unit tests** cover pure logic and live next to the module as `src/**/*.test.ts` (for example `src/entities/World/chunks.test.ts`).
 - **Integration tests** exercise several modules together and live in `tests/integration/**/*.test.ts`. Rapier works in Node: `await PhysicsManager.init()` in `beforeAll`, remove every body and collider the test creates, and call `PhysicsManager.dispose()` in `afterAll` (see `tests/integration/physics.test.ts`).
-- The default environment is `node`, with no DOM. A test that really needs one adds `happy-dom` (or `jsdom`) as a devDependency and opts in per file with a `// @vitest-environment happy-dom` comment on its first line. Prefer testing logic that does not touch the DOM or WebGL.
+- The default environment is `node`, with no DOM. `happy-dom` is a devDependency: a test that really needs a DOM (for example a HUD component) opts in per file with a `// @vitest-environment happy-dom` comment on its first line, and mocks WebGL-only modules such as icon renderers with `vi.mock` (see `src/ui/ResourceCounter/ResourceCounter.test.ts`). Prefer testing logic that does not touch the DOM or WebGL.
 - Import test APIs explicitly (`import { describe, expect, it } from "vitest";`); globals are not enabled.
 - Test files follow the same code style and strict `tsconfig` checks as the rest of the code. They are never imported by `main.ts`, so they never reach the production bundle.
 - Use seeded or injected randomness (for example `createSeededRandom`) instead of `Math.random` so results are reproducible.

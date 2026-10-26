@@ -32,3 +32,25 @@ Finora l'unico controllo automatico era `yarn build` (`tsc` più il bundle di Vi
 - I test di integrazione con Rapier devono rimuovere i propri corpi e collider e chiamare `PhysicsManager.dispose()` in `afterAll`, come nel gioco.
 - Se Rapier cambia la struttura dei file nel pacchetto, l'alias in `vitest.config.ts` va aggiornato.
 - Il primo giro di test ha trovato un difetto già presente: `chunkSeed(x, z)` coincide con `chunkSeed(-x, -z)` per molti chunk, che quindi hanno la stessa disposizione. Il test è marcato `it.fails` finché l'hash non viene corretto.
+
+## 002 — `happy-dom` per i test dei componenti HUD
+
+- **Data:** 2026-10-26
+- **Stato:** accettata
+
+### Contesto
+`ResourceCounter` decide visibilità, ordine e numeri delle voci tramite i binding di `UIComponent`, che scrivono sul DOM. Senza un DOM non si può costruire il componente (`h()` usa `document.createElement`), quindi la sua logica restava scoperta.
+
+### Decisione
+- `happy-dom` diventa una devDependency (aggiunta con `yarn add -D`, solo `yarn.lock`).
+- L'ambiente di default resta `node`: solo i file che ne hanno bisogno attivano il DOM con `// @vitest-environment happy-dom`.
+- I moduli che usano WebGL (per esempio `src/ui/ResourceCounter/icons.ts`) si sostituiscono con `vi.mock`, perché happy-dom non fornisce un contesto WebGL.
+- Primi test: `src/ui/ResourceCounter/ResourceCounter.test.ts` (unitario, con una sorgente finta) e `tests/integration/resource-counter.test.ts` (con `Inventory` e `UIManager` reali).
+
+### Alternative scartate
+- **jsdom:** più completo ma più pesante e lento ad avviarsi; ai componenti HUD bastano creazione di elementi, `classList` e `textContent`.
+- **DOM come ambiente di default:** rallenterebbe tutti i test e nasconderebbe dipendenze involontarie dal DOM nella logica pura.
+- **Estrarre la logica del componente in funzioni pure senza DOM:** avrebbe richiesto di modificare il codice di produzione solo per i test.
+
+### Conseguenze
+- I test HUD verificano classi e testo, non lo stile calcolato: i CSS module non vengono applicati, quindi animazioni e layout restano allo smoke test nel browser.
