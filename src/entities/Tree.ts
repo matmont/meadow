@@ -41,6 +41,36 @@ export const TREE_FELLING = {
   fallDuration: 1.4,
 };
 
+// Shared by every tree like TREE_SHAKE, tuned from Forest's debug folder. Both in seconds of
+// game time (the engine's `elapsed`): the delay is compared with the removal time stored in
+// WorldChanges, so changing it applies to the stumps already there
+export const TREE_REGROWTH = {
+  // From the felling hit until the stump turns back into a tree
+  delay: 300,
+  // Length of the grow-in animation of a tree that regrows in sight
+  growDuration: 1.5,
+};
+
+// Scale of a regrowing tree when it appears, relative to its full scale
+const GROW_START_SCALE = 0.05;
+
+// Eased grow-in progress for a linear `progress` in [0, 1] (clamped): cubic ease-out, so the
+// tree shoots up quickly and settles gently on its full size
+export function growEase(progress: number): number {
+  const t = Math.min(Math.max(progress, 0), 1);
+  return 1 - (1 - t) ** 3;
+}
+
+// Radius of the trunk collider of a tree with this model and scale, measured like the
+// constructor does. Clones the model, so callers cache the result instead of calling it per
+// frame (see Forest)
+export function treeColliderRadius(model: ModelId, scale = 1): number {
+  const object = LoaderManager.instantiate(model);
+  object.scale.multiplyScalar(scale);
+  const size = new Box3().setFromObject(object).getSize(new Vector3());
+  return Math.min(size.x, size.z) / 2;
+}
+
 // Eased fall progress for a linear `progress` in [0, 1] (clamped): quadratic, so the tree
 // starts slowly and speeds up as it topples, like under a constant angular acceleration
 export function fallEase(progress: number): number {
@@ -58,6 +88,9 @@ export interface TreeOptions {
   onFelled?: (tree: Tree) => void;
   // Called once when the fall ends, after the tree has destroyed itself
   onFallen?: (tree: Tree) => void;
+  // Grows in from a small scale over TREE_REGROWTH.growDuration instead of appearing at
+  // full size. The collider has its full size from the start
+  grow?: boolean;
 }
 
 export default class Tree extends Entity {
@@ -86,6 +119,10 @@ export default class Tree extends Entity {
   // Tilt when the fall started, blended out so a tree hit mid-swing does not jump
   #fallStartX = 0;
   #fallStartZ = 0;
+  // Full scale of the root (asset scale included) the grow-in animation reaches
+  #fullScale = 1;
+  #isGrowing = false;
+  #growTime = 0;
 
   constructor(
     position: Vector3Like = { x: 0, y: 0, z: 0 },
@@ -95,6 +132,7 @@ export default class Tree extends Entity {
       scale = 1,
       onFelled,
       onFallen,
+      grow = false,
     }: TreeOptions = {},
   ) {
     super(LoaderManager.instantiate(model), {
@@ -110,6 +148,12 @@ export default class Tree extends Entity {
     // angle, which would widen the collider
     const size = new Box3().setFromObject(this.object).getSize(new Vector3());
     const radius = Math.min(size.x, size.z);
+    // Asset scales are uniform, so one component is the whole scale
+    this.#fullScale = this.object.scale.x;
+    if (grow) {
+      this.#isGrowing = true;
+      this.object.scale.setScalar(this.#fullScale * GROW_START_SCALE);
+    }
     this.#baseRotation.setFromAxisAngle(UP, rotation);
     this.object.quaternion.copy(this.#baseRotation);
 
@@ -132,13 +176,19 @@ export default class Tree extends Entity {
       radius: radius / 2 + HARVEST_REACH,
       promptHeight: size.y + 0.2,
       onAction: (_action, actorPosition) => this.#harvest(actorPosition),
-      isEnabled: () => !this.#isFalling,
+      // A growing tree cannot be hit yet: it is too small to look like a target
+      isEnabled: () => !this.#isFalling && !this.#isGrowing,
     });
   }
 
   // True from the felling hit on: the tree no longer reacts to hits
   get isFelled(): boolean {
     return this.#isFalling;
+  }
+
+  // True while the grow-in animation runs
+  get isGrowing(): boolean {
+    return this.#isGrowing;
   }
 
   override onAdded(): void {
@@ -150,6 +200,7 @@ export default class Tree extends Entity {
       this.#updateFall(delta);
       return;
     }
+    if (this.#isGrowing) this.#updateGrowth(delta);
     if (!this.#isShaking) return;
 
     // Damped spring: a = -ω²x - 2ζωv, semi-implicit Euler
@@ -216,6 +267,16 @@ export default class Tree extends Entity {
     this.#isShaking = false;
     this.#removeBody();
     this.#onFelled?.(this);
+  }
+
+  #updateGrowth(delta: number): void {
+    this.#growTime += delta;
+    const duration = Math.max(TREE_REGROWTH.growDuration, 1e-3);
+    const progress = Math.min(this.#growTime / duration, 1);
+    const scale =
+      GROW_START_SCALE + (1 - GROW_START_SCALE) * growEase(progress);
+    this.object.scale.setScalar(this.#fullScale * scale);
+    if (progress >= 1) this.#isGrowing = false;
   }
 
   #updateFall(delta: number): void {

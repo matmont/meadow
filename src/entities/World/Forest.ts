@@ -8,7 +8,12 @@ import type { ModelId } from "../../LoaderManager";
 import type WorldChanges from "../../WorldChanges";
 import { worldKey } from "../../WorldChanges";
 import Stump from "../Stump";
-import Tree, { TREE_FELLING, TREE_SHAKE } from "../Tree";
+import Tree, {
+  TREE_FELLING,
+  TREE_REGROWTH,
+  TREE_SHAKE,
+  treeColliderRadius,
+} from "../Tree";
 import { CHUNK_SIZE, ChunkGrid, chunkSeed } from "./chunks";
 import { createSeededRandom } from "./utils";
 
@@ -50,6 +55,9 @@ const MIN_SCALE = 0.8;
 const MAX_SCALE = 1.25;
 // A candidate too close to another tree is drawn again, up to this many times
 const MAX_ATTEMPTS = 8;
+// Clearance kept between the followed object and the collider of a regrowing tree: the
+// player's capsule radius plus some slack, so the new collider never traps it
+const REGROWTH_MARGIN = 0.5;
 
 // Placed by hand near the camp, outside the chunks; keyed in their own layer
 const CAMP_TREES: readonly Omit<ForestEntrySpec, "key">[] = [
@@ -58,7 +66,20 @@ const CAMP_TREES: readonly Omit<ForestEntrySpec, "key">[] = [
 
 // Minimal views of the session state the forest writes to
 export type ForestInventory = Pick<Inventory, "add">;
-export type ForestWorldChanges = Pick<WorldChanges, "markRemoved" | "removedAt">;
+export type ForestWorldChanges = Pick<
+  WorldChanges,
+  "markRemoved" | "removedAt" | "restore"
+>;
+
+// Whether a tree removed at `removedAt` (game time, seconds) grows back at `elapsed`.
+// The delay is read at every check, so changing it applies to existing stumps
+export function isRegrowthDue(
+  removedAt: number,
+  elapsed: number,
+  delay: number,
+): boolean {
+  return elapsed - removedAt >= delay;
+}
 
 interface ForestEntrySpec {
   // worldKey() of the tree, stable across chunk reloads
@@ -90,6 +111,10 @@ export default class Forest extends Entity {
   readonly #followedPosition = new Vector3();
   readonly #chunks: ChunkGrid<readonly ForestEntry[]>;
   readonly #camp: readonly ForestEntry[];
+  // Loaded entries holding a stump, the only ones the regrowth pass looks at
+  readonly #stumps: ForestEntry[] = [];
+  // Unscaled collider radius of each tree model, measured once on the first regrowth
+  readonly #radii = new Map<TreeModel, number>();
   // Game time of the last update: a tree is felled from the player's tool hit, which does
   // not receive it
   #elapsed = 0;
@@ -128,6 +153,7 @@ export default class Forest extends Entity {
   override update(_delta: number, elapsed: number): void {
     this.#elapsed = elapsed;
     this.#chunks.update(this.#followed.getWorldPosition(this.#followedPosition));
+    this.#regrowDue(false);
   }
 
   override onRemoved(): void {
@@ -155,6 +181,15 @@ export default class Forest extends Entity {
       },
     };
     folder.add(actions, "shakeAll").name("shake all trees");
+    folder.add(TREE_REGROWTH, "delay", 0, 900, 1).name("regrowth delay");
+    folder
+      .add(TREE_REGROWTH, "growDuration", 0.1, 5, 0.1)
+      .name("grow duration");
+    // Stumps the followed object stands on still wait for it to move away
+    const regrowth = {
+      regrowAll: (): void => this.#regrowDue(true),
+    };
+    folder.add(regrowth, "regrowAll").name("regrow all stumps now");
   }
 
   #loadChunk(chunkX: number, chunkZ: number): ForestEntry[] {
@@ -197,16 +232,59 @@ export default class Forest extends Entity {
     return entries;
   }
 
-  // A tree felled before (even in a chunk unloaded since) comes back as its stump
+  // A tree felled before (even in a chunk unloaded since) comes back as its stump, unless
+  // the delay has passed meanwhile: then it is already grown back, with no animation
   #spawn(entry: ForestEntry): void {
-    if (this.#worldChanges.removedAt(entry.key) !== undefined) {
-      this.#plantStump(entry);
-    } else {
+    const removedAt = this.#worldChanges.removedAt(entry.key);
+    if (removedAt === undefined) {
       this.#plantTree(entry);
+    } else if (isRegrowthDue(removedAt, this.#elapsed, TREE_REGROWTH.delay)) {
+      this.#worldChanges.restore(entry.key);
+      this.#plantTree(entry);
+    } else {
+      this.#plantStump(entry);
     }
   }
 
-  #plantTree(entry: ForestEntry): void {
+  // Turns the loaded stumps whose delay has passed (or all of them, when `force` is set) back
+  // into growing trees. Runs every frame: it only reads numbers and never allocates
+  #regrowDue(force: boolean): void {
+    // Backwards, because a regrown entry is swapped out of the list
+    for (let i = this.#stumps.length - 1; i >= 0; i--) {
+      const entry = this.#stumps[i]!;
+      const removedAt = this.#worldChanges.removedAt(entry.key);
+      if (
+        !force &&
+        removedAt !== undefined &&
+        !isRegrowthDue(removedAt, this.#elapsed, TREE_REGROWTH.delay)
+      ) {
+        continue;
+      }
+      if (this.#isBlocked(entry)) continue;
+
+      entry.stump!.destroy();
+      entry.stump = null;
+      this.#removeStump(i);
+      this.#worldChanges.restore(entry.key);
+      this.#plantTree(entry, true);
+    }
+  }
+
+  // True while the followed object stands where the regrown tree's collider would be: the
+  // regrowth waits until it moves away
+  #isBlocked(entry: ForestEntry): boolean {
+    let radius = this.#radii.get(entry.model);
+    if (radius === undefined) {
+      radius = treeColliderRadius(entry.model);
+      this.#radii.set(entry.model, radius);
+    }
+    const reach = radius * entry.scale + REGROWTH_MARGIN;
+    const dx = this.#followedPosition.x - entry.x;
+    const dz = this.#followedPosition.z - entry.z;
+    return dx * dx + dz * dz < reach * reach;
+  }
+
+  #plantTree(entry: ForestEntry, grow = false): void {
     const { x, z, model, rotation, scale } = entry;
     entry.tree = this.#entities.add(
       new Tree(
@@ -217,6 +295,7 @@ export default class Forest extends Entity {
           scale,
           onFelled: () => this.#onFelled(entry),
           onFallen: () => this.#onFallen(entry),
+          grow,
         },
       ),
     );
@@ -231,6 +310,14 @@ export default class Forest extends Entity {
         { model: stump.model, rotation, scale: scale * stump.scale },
       ),
     );
+    this.#stumps.push(entry);
+  }
+
+  // Swap-remove: the order of the list does not matter
+  #removeStump(index: number): void {
+    if (index < 0) return;
+    const last = this.#stumps.pop()!;
+    if (index < this.#stumps.length) this.#stumps[index] = last;
   }
 
   // Recorded and paid at the felling hit, not when the fall ends: if the chunk unloads while
@@ -248,7 +335,10 @@ export default class Forest extends Entity {
 
   #clear(entry: ForestEntry): void {
     entry.tree?.destroy();
-    entry.stump?.destroy();
+    if (entry.stump) {
+      entry.stump.destroy();
+      this.#removeStump(this.#stumps.indexOf(entry));
+    }
     entry.tree = null;
     entry.stump = null;
   }
