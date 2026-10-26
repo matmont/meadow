@@ -2,7 +2,7 @@
 // Tree imports Entity, whose DebugManager reads `location` when the module loads
 import { BoxGeometry, Group, Mesh, MeshBasicMaterial } from "three";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import LoaderManager from "../LoaderManager";
+import LoaderManager from "../../LoaderManager";
 import {
   FALL_ANGLE,
   TREE_FELLING,
@@ -10,7 +10,7 @@ import {
   fallEase,
   growEase,
   treeColliderRadius,
-} from "./Tree";
+} from "../Tree";
 
 describe("fallEase", () => {
   it("starts at 0 and ends at 1", () => {

@@ -74,7 +74,7 @@ To run the tests ([Vitest](https://vitest.dev/), in Node):
 
 ```sh
 yarn test               # all tests, once
-yarn test:unit          # unit tests only (src/**/*.test.ts)
+yarn test:unit          # unit tests only (src/**/__tests__/)
 yarn test:integration   # integration tests only (tests/integration/)
 ```
 
@@ -140,6 +140,7 @@ public/
 
 tests/
 └── integration/            Tests that exercise several modules together (e.g. Rapier)
+                            (unit tests live in src/**/__tests__/, next to the module)
 
 docs/                       Game design notes
 .claude/adr/                Architecture decision records, one file per feature

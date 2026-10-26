@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import WorldChanges, { worldKey } from "./WorldChanges";
+import WorldChanges, { worldKey } from "../WorldChanges";
 
 describe("worldKey", () => {
   it("returns the same key for the same object", () => {
