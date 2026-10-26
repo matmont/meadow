@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // Tree imports Entity, whose DebugManager reads `location` when the module loads
 import { describe, expect, it } from "vitest";
-import { FALL_ANGLE, TREE_FELLING, fallEase } from "./Tree";
+import { FALL_ANGLE, TREE_FELLING, fallEase } from "../Tree";
 
 describe("fallEase", () => {
   it("starts at 0 and ends at 1", () => {
