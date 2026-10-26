@@ -4,7 +4,7 @@
 
 This is a small browser-based Three.js playground/game built with TypeScript and Vite. Rapier provides physics, howler.js provides audio, `lil-gui` provides opt-in debug controls, and models/textures/sounds are served as static assets from `public/`.
 
-There is no application framework, test runner, linter, or formatter configured. Keep changes focused and follow the style of the surrounding TypeScript.
+Vitest is the test runner (see [Tests](#tests)). There is no application framework, linter, or formatter configured. Keep changes focused and follow the style of the surrounding TypeScript.
 
 ## Repository map
 
@@ -21,6 +21,9 @@ There is no application framework, test runner, linter, or formatter configured.
 - `src/particles/`: particle effects (`ParticleEffect` subclasses), each in its own folder (for example `src/particles/FootDust/`), plus the shared `ParticleSystem` and the CPU backend `InstancedParticles`.
 - `src/interaction/`: `Interactable` (owned by interactable entities), `InteractionManager` (focus selection, action dispatch), and the inverted-hull `Outline`.
 - `src/ui/`: HUD components (`UIComponent` subclasses), each in its own folder with its `*.module.css` (for example `src/ui/DayClock/`), plus shared helpers (`dom.ts`, `ui.css`).
+- `src/**/*.test.ts`: unit tests, next to the module they test.
+- `tests/integration/`: integration tests that exercise several modules together (for example Rapier with `PhysicsManager`).
+- `vitest.config.ts`: test configuration; it extends `vite.config.ts` and defines the `unit` and `integration` projects.
 - `.claude/adr/`: architecture decision records, one file per feature.
 - `public/`: source assets. URLs registered in `LoaderManager` are relative to this directory through `import.meta.env.BASE_URL`.
 - `dist/`: generated Vite output; it is ignored and must not be edited by hand.
@@ -34,14 +37,29 @@ yarn install
 yarn dev
 yarn build
 yarn preview
+yarn test
+yarn test:unit
+yarn test:integration
 ```
 
 - `yarn dev` starts the Vite development server.
 - Add `?debug` to the page URL to enable `lil-gui` and the Rapier wireframe debug entity.
-- `yarn build` is the primary automated check: it runs `tsc` first, then creates the production bundle.
-- There are currently no automated tests. For behavior changes, perform a browser smoke test as well as the build.
+- `yarn build` runs `tsc` first (which also type-checks the test files), then creates the production bundle.
+- `yarn test` runs every test once; `yarn test:unit` and `yarn test:integration` run one project. Use `yarn vitest` for watch mode.
+- Tests do not cover rendering, input, or audio. For behavior changes, perform a browser smoke test as well as the build and the tests.
 
 Do not add a second lockfile or silently switch package managers.
+
+## Tests
+
+Vitest reuses the Vite config and toolchain. See `.claude/adr/testing.md`.
+
+- **Unit tests** cover pure logic and live next to the module as `src/**/*.test.ts` (for example `src/entities/World/chunks.test.ts`).
+- **Integration tests** exercise several modules together and live in `tests/integration/**/*.test.ts`. Rapier works in Node: `await PhysicsManager.init()` in `beforeAll`, remove every body and collider the test creates, and call `PhysicsManager.dispose()` in `afterAll` (see `tests/integration/physics.test.ts`).
+- The default environment is `node`, with no DOM. A test that really needs one adds `happy-dom` (or `jsdom`) as a devDependency and opts in per file with a `// @vitest-environment happy-dom` comment on its first line. Prefer testing logic that does not touch the DOM or WebGL.
+- Import test APIs explicitly (`import { describe, expect, it } from "vitest";`); globals are not enabled.
+- Test files follow the same code style and strict `tsconfig` checks as the rest of the code. They are never imported by `main.ts`, so they never reach the production bundle.
+- Use seeded or injected randomness (for example `createSeededRandom`) instead of `Math.random` so results are reproducible.
 
 ## Architecture and lifecycle rules
 
@@ -136,14 +154,17 @@ When making a non-trivial architectural or design decision (new subsystem, state
 
 For every code change:
 
-1. Run `yarn build` and report any pre-existing failure separately from regressions.
-2. If rendering, input, animation, camera, asset, or physics behavior changed, run `yarn dev` and smoke-test the affected path in a browser.
-3. Also test with `?debug` when changing entities, Rapier integration, shadows, or GUI controls.
-4. Check the browser console for asset-loading, WebGL, animation-clip, and disposal errors.
-5. Exercise Vite hot reload when changing global managers or teardown logic.
+1. Run `yarn build` and `yarn test`, and report any pre-existing failure separately from regressions.
+2. Add or update unit tests for changed pure logic, and integration tests when modules interact (for example entities with Rapier).
+3. If rendering, input, animation, camera, asset, or physics behavior changed, run `yarn dev` and smoke-test the affected path in a browser.
+4. Also test with `?debug` when changing entities, Rapier integration, shadows, or GUI controls.
+5. Check the browser console for asset-loading, WebGL, animation-clip, and disposal errors.
+6. Exercise Vite hot reload when changing global managers or teardown logic.
 
 Useful current controls are WASD for movement, left Shift for running, Space for jumping, 1/2/3 for selecting the pickaxe, axe, or torch, and holding the left mouse button or J to use the selected tool.
 
 ## Known baseline issues
 
-`yarn build` currently passes; a failing build is a regression.
+`yarn build` and `yarn test` currently pass; a failure in either is a regression.
+
+- `chunkSeed(x, z)` returns the same seed as `chunkSeed(-x, -z)` for many chunks (for example `(1, 1)` and `(-1, -1)`), so those chunks get the same layout. `src/entities/World/chunks.test.ts` records it as an expected failure (`it.fails`); remove `.fails` when the hash is fixed.

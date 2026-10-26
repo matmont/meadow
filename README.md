@@ -48,6 +48,7 @@ Meadow Waltz is an early-stage browser game about wandering through an endless m
 - [Howler.js](https://howlerjs.com/) for audio playback
 - [lil-gui](https://lil-gui.georgealways.com/) for runtime debug controls
 - [TypeScript](https://www.typescriptlang.org/) and [Vite](https://vite.dev/) for development and builds
+- [Vitest](https://vitest.dev/) for unit and integration tests
 
 The HUD uses vanilla TypeScript and CSS modules, with no UI framework.
 
@@ -69,7 +70,15 @@ yarn build
 yarn preview
 ```
 
-There is no test suite: `yarn build` (which runs `tsc` first) is the automated check, followed by a manual smoke test in the browser.
+To run the tests ([Vitest](https://vitest.dev/), in Node):
+
+```sh
+yarn test               # all tests, once
+yarn test:unit          # unit tests only (src/**/*.test.ts)
+yarn test:integration   # integration tests only (tests/integration/)
+```
+
+`yarn build` (which runs `tsc` first, type-checking the tests too) and `yarn test` are the automated checks, followed by a manual smoke test in the browser.
 
 ## Controls
 
@@ -127,6 +136,9 @@ public/
 ├── models/                 GLB assets (and some Blender sources)
 ├── textures/
 └── audio/
+
+tests/
+└── integration/            Tests that exercise several modules together (e.g. Rapier)
 
 docs/                       Game design notes
 .claude/adr/                Architecture decision records, one file per feature
