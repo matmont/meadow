@@ -124,7 +124,7 @@ export default class InteractionManager {
       action &&
       !action.tool
     ) {
-      focused.perform(action);
+      focused.perform(action, InteractionManager.#actorPosition);
     }
     InteractionManager.#wasInteractPressed = interactPressed;
   }
@@ -215,9 +215,13 @@ export default class InteractionManager {
   }
 
   static readonly #onToolHit = ({ tool }: { tool: ToolId }): void => {
+    const actor = InteractionManager.#actor;
     const focused = InteractionManager.#focused;
     const action = InteractionManager.#focusedAction;
-    if (focused && action?.tool === tool) focused.perform(action);
+    if (!actor || !focused || action?.tool !== tool) return;
+    // The hit fires during the player's update, before this frame's update() of the manager
+    actor.object.getWorldPosition(InteractionManager.#actorPosition);
+    focused.perform(action, InteractionManager.#actorPosition);
   };
 
   static readonly #populateDebugFolder = (folder: GUI): void => {

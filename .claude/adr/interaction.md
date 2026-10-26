@@ -59,3 +59,24 @@ Nel mondo ci sono entità su cui il player può agire, spesso con un tool precis
 - Il primo focus su un modello calcola le normali smussate di ogni sua geometria. Per i modelli attuali è trascurabile; per modelli molto densi si potrà precalcolare al caricamento.
 - Il colpo che parte da `toolHit` usa l'oggetto a fuoco del frame precedente, perché il player si aggiorna prima del manager. Una differenza di un frame è irrilevante.
 - Il contorno è bianco semitrasparente (`opacity` 0,5, materiale `transparent` che scrive comunque la profondità). `outline thickness`, `outline opacity` e l'oggetto a fuoco sono nella cartella di debug "Interaction".
+
+## 002 — `onAction` riceve la posizione di chi agisce
+
+- **Data:** 2026-10-26
+- **Stato:** accettata. Estende la firma di `onAction` della [001](#001--interactable-posseduto-dallentità-interactionmanager-che-sceglie-il-focus-outline-a-inverted-hull-prompt-nella-hud).
+
+### Contesto
+La scossa dell'albero (vedi [tree-harvest 001](tree-harvest.md#001--scossa-dellalbero-con-una-molla-smorzata-sulla-cpu-inclinazione-rigida-attorno-alla-base)) deve sapere da che parte arriva il colpo. `onAction(action)` riceveva solo l'azione.
+
+### Decisione
+- `onAction(action, actorPosition)` e `Interactable.perform(action, actorPosition)` ricevono la posizione in mondo di chi agisce, come `Readonly<Vector3Like>`.
+- Il manager passa il proprio vettore riusato `#actorPosition`, quindi chi lo riceve lo legge durante la chiamata e non tiene il riferimento.
+- In `#onToolHit` il manager aggiorna `#actorPosition` prima di chiamare l'azione, perché il colpo parte durante l'update del player, prima dell'`update()` del manager in quel frame. Per `INTERACT_KEY` il vettore è già quello del frame corrente.
+
+### Alternative scartate
+- **Passare l'intero `InteractorSource`:** darebbe alle entità accesso a tool, eventi e `faceTowards()`, cioè più di quanto serve. Si potrà allargare se un'azione avrà bisogno del tool o di altro.
+- **L'entità chiede la posizione all'`InteractionManager`** (un getter statico dell'actor): un legame nascosto fra l'entità e il manager. Con il parametro la dipendenza resta dichiarata nella callback.
+- **Allocare una copia della posizione per ogni azione:** un colpo è un evento raro e costerebbe poco, ma il codice evita allocazioni nei percorsi di gioco e il contratto "leggi durante la chiamata" basta.
+
+### Conseguenze
+- Le azioni che non usano la posizione la ignorano con un parametro `_actorPosition`, oppure non lo dichiarano.

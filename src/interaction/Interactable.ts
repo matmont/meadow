@@ -1,4 +1,4 @@
-import type { Object3D } from "three";
+import type { Object3D, Vector3Like } from "three";
 import type { ToolId } from "../entities/Player/tools";
 import Outline from "./Outline";
 
@@ -15,7 +15,12 @@ export interface InteractableOptions {
   readonly radius: number;
   // Height of the prompt above `object`'s origin, in world units
   readonly promptHeight: number;
-  readonly onAction: (action: InteractionAction) => void;
+  // `actorPosition` is the actor's world position, reused by the manager: read it during the
+  // call, never keep the reference
+  readonly onAction: (
+    action: InteractionAction,
+    actorPosition: Readonly<Vector3Like>,
+  ) => void;
   readonly isEnabled?: () => boolean;
 }
 
@@ -25,7 +30,7 @@ export default class Interactable {
   readonly radius: number;
   readonly promptHeight: number;
 
-  readonly #onAction: (action: InteractionAction) => void;
+  readonly #onAction: InteractableOptions["onAction"];
   readonly #isEnabled: () => boolean;
   readonly #outline: Outline;
 
@@ -56,8 +61,11 @@ export default class Interactable {
     return fallback;
   }
 
-  perform(action: InteractionAction): void {
-    this.#onAction(action);
+  perform(
+    action: InteractionAction,
+    actorPosition: Readonly<Vector3Like>,
+  ): void {
+    this.#onAction(action, actorPosition);
   }
 
   setHighlighted(highlighted: boolean): void {
