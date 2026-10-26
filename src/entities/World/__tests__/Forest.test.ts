@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 // Forest imports Entity, whose DebugManager reads `location` when the module loads
 import { describe, expect, it } from "vitest";
-import { isRegrowthDue } from "./Forest";
+import { isRegrowthDue } from "../Forest";
 
 describe("isRegrowthDue", () => {
   it("is not due before the delay has passed", () => {
