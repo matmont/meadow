@@ -17,6 +17,9 @@ const SHAKE_STEP = 1 / 120;
 const REST_TILT = 1e-4;
 const REST_SPEED = 1e-3;
 const UP = new Vector3(0, 1, 0);
+// Lean of a felled tree when it is removed: a bit short of lying flat, so the canopy does not
+// sink far into the ground
+export const FALL_ANGLE = Math.PI / 2 - 0.15;
 
 // Shared by every tree, so the debug GUI tunes them all from a single folder (see Forest)
 export const TREE_SHAKE = {
@@ -28,17 +31,39 @@ export const TREE_SHAKE = {
   maxTilt: 0.15,
 };
 
+// Shared by every tree like TREE_SHAKE, tuned from Forest's debug folder
+export const TREE_FELLING = {
+  // Axe hits that fell a tree; the earlier ones only shake it
+  hits: 5,
+  // Given once per felled tree; a positive integer, as Inventory requires
+  wood: 3,
+  // Seconds from the felling hit until the tree lies down and is removed
+  fallDuration: 1.4,
+};
+
+// Eased fall progress for a linear `progress` in [0, 1] (clamped): quadratic, so the tree
+// starts slowly and speeds up as it topples, like under a constant angular acceleration
+export function fallEase(progress: number): number {
+  const t = Math.min(Math.max(progress, 0), 1);
+  return t * t;
+}
+
 export interface TreeOptions {
   model?: ModelId;
   // Around the vertical axis, in radians
   rotation?: number;
   // On top of the model's asset scale
   scale?: number;
+  // Called once by the hit that fells the tree, before it starts falling
+  onFelled?: (tree: Tree) => void;
+  // Called once when the fall ends, after the tree has destroyed itself
+  onFallen?: (tree: Tree) => void;
 }
 
 export default class Tree extends Entity {
-  readonly #body: RAPIER.RigidBody;
   readonly #interactable: Interactable;
+  readonly #onFelled: ((tree: Tree) => void) | undefined;
+  readonly #onFallen: ((tree: Tree) => void) | undefined;
   readonly #axis = new Vector3();
   // The rotation around Y the tilt is composed with
   readonly #baseRotation = new Quaternion();
@@ -50,10 +75,27 @@ export default class Tree extends Entity {
   #speedX = 0;
   #speedZ = 0;
   #isShaking = false;
+  // Removed when the tree is felled, so the player is not blocked by a falling trunk
+  #body: RAPIER.RigidBody | null;
+  #hits = 0;
+  #isFalling = false;
+  #fallTime = 0;
+  // Horizontal unit direction of the fall, away from the player
+  #fallX = 0;
+  #fallZ = 0;
+  // Tilt when the fall started, blended out so a tree hit mid-swing does not jump
+  #fallStartX = 0;
+  #fallStartZ = 0;
 
   constructor(
     position: Vector3Like = { x: 0, y: 0, z: 0 },
-    { model = "treePine", rotation = 0, scale = 1 }: TreeOptions = {},
+    {
+      model = "treePine",
+      rotation = 0,
+      scale = 1,
+      onFelled,
+      onFallen,
+    }: TreeOptions = {},
   ) {
     super(LoaderManager.instantiate(model), {
       castShadow: true,
@@ -61,6 +103,8 @@ export default class Tree extends Entity {
     });
     this.object.position.copy(position);
     this.object.scale.multiplyScalar(scale);
+    this.#onFelled = onFelled;
+    this.#onFallen = onFallen;
 
     // Measured before rotating: the box of a rotated model is axis-aligned and grows with the
     // angle, which would widen the collider
@@ -88,7 +132,13 @@ export default class Tree extends Entity {
       radius: radius / 2 + HARVEST_REACH,
       promptHeight: size.y + 0.2,
       onAction: (_action, actorPosition) => this.#harvest(actorPosition),
+      isEnabled: () => !this.#isFalling,
     });
+  }
+
+  // True from the felling hit on: the tree no longer reacts to hits
+  get isFelled(): boolean {
+    return this.#isFalling;
   }
 
   override onAdded(): void {
@@ -96,6 +146,10 @@ export default class Tree extends Entity {
   }
 
   override update(delta: number): void {
+    if (this.#isFalling) {
+      this.#updateFall(delta);
+      return;
+    }
     if (!this.#isShaking) return;
 
     // Damped spring: a = -ω²x - 2ζωv, semi-implicit Euler
@@ -132,16 +186,64 @@ export default class Tree extends Entity {
   // Geometrie e materiali sono condivisi tra tutte le copie del modello:
   // li gestisce il LoaderManager, non la singola entità.
   override dispose(): void {
-    PhysicsManager.world.removeRigidBody(this.#body);
+    this.#removeBody();
   }
 
-  // Wood and felling are still to be decided: for now a hit only shakes the tree
+  // Every hit shakes the tree, except the one that reaches TREE_FELLING.hits, which fells it.
+  // The tree does not give wood itself: whoever owns it does in onFelled (see Forest)
   #harvest(actorPosition: Readonly<Vector3Like>): void {
-    this.shake(actorPosition);
+    if (this.#isFalling) return;
+    this.#hits++;
+    if (this.#hits < TREE_FELLING.hits) {
+      this.shake(actorPosition);
+      return;
+    }
+    this.#fell(actorPosition);
+  }
+
+  // Starts the fall away from `from`, pivoting on the base like the shake
+  #fell(from: Readonly<Vector3Like>): void {
+    const dx = this.object.position.x - from.x;
+    const dz = this.object.position.z - from.z;
+    const distance = Math.hypot(dx, dz);
+    // Hit from the trunk's origin there is no direction: fall along +X
+    this.#fallX = distance < 1e-3 ? 1 : dx / distance;
+    this.#fallZ = distance < 1e-3 ? 0 : dz / distance;
+    this.#fallStartX = this.#tiltX;
+    this.#fallStartZ = this.#tiltZ;
+    this.#fallTime = 0;
+    this.#isFalling = true;
+    this.#isShaking = false;
+    this.#removeBody();
+    this.#onFelled?.(this);
+  }
+
+  #updateFall(delta: number): void {
+    this.#fallTime += delta;
+    const duration = Math.max(TREE_FELLING.fallDuration, 1e-3);
+    const progress = Math.min(this.#fallTime / duration, 1);
+    const eased = fallEase(progress);
+    this.#tiltX =
+      this.#fallStartX * (1 - eased) + this.#fallX * FALL_ANGLE * eased;
+    this.#tiltZ =
+      this.#fallStartZ * (1 - eased) + this.#fallZ * FALL_ANGLE * eased;
+    this.#applyTilt();
+    if (progress < 1) return;
+
+    // Removal is deferred by the entity manager, so update() is not called again
+    this.destroy();
+    this.#onFallen?.(this);
+  }
+
+  #removeBody(): void {
+    if (!this.#body) return;
+    PhysicsManager.world.removeRigidBody(this.#body);
+    this.#body = null;
   }
 
   // Pushes the top away from `from`; repeated hits add up, limited by maxTilt
   shake(from: Readonly<Vector3Like>): void {
+    if (this.#isFalling) return;
     const dx = this.object.position.x - from.x;
     const dz = this.object.position.z - from.z;
     const distance = Math.hypot(dx, dz);

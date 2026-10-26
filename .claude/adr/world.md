@@ -79,7 +79,7 @@ Si aggiunge il falò (`public/models/campfire/campfire.glb`): sassi, tronchi, br
 ## 004 — Alberi casuali nei chunk come entità `Tree`, gestiti da `Forest`
 
 - **Data:** 2026-10-26
-- **Stato:** accettata. Risolve il punto lasciato aperto nella [001](#001--prato-infinito-piano-che-segue-il-player-collider-half-space-vegetazione-a-chunk-nebbia) ("Alberi e rocce sono ancora piazzati a mano"), per gli alberi.
+- **Stato:** accettata. Risolve il punto lasciato aperto nella [001](#001--prato-infinito-piano-che-segue-il-player-collider-half-space-vegetazione-a-chunk-nebbia) ("Alberi e rocce sono ancora piazzati a mano"), per gli alberi. L'albero piazzato a mano in `main.ts` passa sotto `Forest`, e la conseguenza sullo stato degli alberi perso al ricaricamento del chunk è risolta, il 2026-10-26 dalla [tree-harvest 003](tree-harvest.md#003--abbattimento-dopo-n-colpi-ceppo-legna-e-stato-in-worldchanges-gestiti-da-forest).
 
 ### Contesto
 Gli alberi devono comparire in modo casuale e deterministico come erba e fiori. A differenza delle piante, però, ogni albero ha un collider, un `Interactable` (si colpisce con l'ascia) e uno stato proprio (la scossa, vedi [tree-harvest](tree-harvest.md)).
