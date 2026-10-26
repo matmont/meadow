@@ -173,3 +173,170 @@ describe("ChunkGrid", () => {
     expect(loaded).toHaveLength(CHUNK_COUNT);
   });
 });
+
+describe("chunkSeed range", () => {
+  it("returns a 32-bit integer usable as a PRNG seed", () => {
+    for (const [x, z] of [
+      [0, 0],
+      [1, -1],
+      [-1000, 1000],
+      [123456, -654321],
+    ] as const) {
+      const seed = chunkSeed(x, z, 0x7fffffff);
+      expect(Number.isInteger(seed)).toBe(true);
+      expect(seed).toBeGreaterThanOrEqual(-(2 ** 31));
+      expect(seed).toBeLessThan(2 ** 31);
+    }
+  });
+
+  it("gives the same chunk a different seed for every salt", () => {
+    const seeds = new Set<number>();
+    for (let salt = 0; salt < 64; salt++) seeds.add(chunkSeed(2, -3, salt));
+    expect(seeds.size).toBe(64);
+  });
+});
+
+describe("ChunkGrid edge cases", () => {
+  const side = CHUNK_RADIUS * 2 + 1;
+
+  it("has no values before the first update", () => {
+    const { grid, loaded } = createGrid();
+
+    expect([...grid.values()]).toHaveLength(0);
+    expect(loaded).toHaveLength(0);
+  });
+
+  it("puts a position exactly on a negative chunk border in that chunk", () => {
+    const { grid } = createGrid();
+
+    grid.update({ x: -CHUNK_SIZE, y: 0, z: -2 * CHUNK_SIZE });
+
+    expect(keys(grid.values())).toEqual(expectedKeys(-1, -2));
+  });
+
+  it("treats -0 like 0", () => {
+    const { grid } = createGrid();
+    grid.update({ x: 0, y: 0, z: 0 });
+
+    expect(grid.update({ x: -0, y: 0, z: -0 })).toBe(false);
+  });
+
+  it("does nothing while moving inside a negative chunk", () => {
+    const { grid, loaded, unloaded } = createGrid();
+    grid.update({ x: -0.01, y: 0, z: -0.01 });
+
+    expect(grid.update({ x: -CHUNK_SIZE + 0.01, y: 0, z: -CHUNK_SIZE })).toBe(
+      false,
+    );
+
+    expect(loaded).toHaveLength(CHUNK_COUNT);
+    expect(unloaded).toHaveLength(0);
+    expect(keys(grid.values())).toEqual(expectedKeys(-1, -1));
+  });
+
+  it("ignores the height of the position", () => {
+    const { grid } = createGrid();
+    grid.update({ x: 0, y: 0, z: 0 });
+
+    expect(grid.update({ x: 0, y: -1000, z: 0 })).toBe(false);
+    expect(grid.update({ x: 0, y: 1000, z: 0 })).toBe(false);
+  });
+
+  it("loads only integer chunk coordinates for fractional positions", () => {
+    const { grid, loaded } = createGrid();
+
+    grid.update({ x: 47.3, y: 0, z: -80.9 });
+
+    expect(
+      loaded.every(
+        (chunk) => Number.isInteger(chunk.x) && Number.isInteger(chunk.z),
+      ),
+    ).toBe(true);
+    expect(keys(grid.values())).toEqual(expectedKeys(1, -3));
+  });
+
+  it("swaps only an L-shaped edge when moving one chunk diagonally", () => {
+    const { grid, loaded, unloaded } = createGrid();
+    grid.update({ x: 0, y: 0, z: 0 });
+    loaded.length = 0;
+
+    expect(grid.update({ x: -1, y: 0, z: -1 })).toBe(true);
+
+    const edge = -CHUNK_RADIUS - 1;
+    expect(loaded).toHaveLength(side * 2 - 1);
+    expect(loaded.every((c) => c.x === edge || c.z === edge)).toBe(true);
+    expect(unloaded).toHaveLength(side * 2 - 1);
+    expect(
+      unloaded.every((c) => c.x === CHUNK_RADIUS || c.z === CHUNK_RADIUS),
+    ).toBe(true);
+    expect(keys(grid.values())).toEqual(expectedKeys(-1, -1));
+  });
+
+  it("swaps several rows when moving several chunks in one update", () => {
+    const { grid, loaded, unloaded } = createGrid();
+    grid.update({ x: 0, y: 0, z: 0 });
+    loaded.length = 0;
+    const steps = 2;
+
+    expect(grid.update({ x: 0, y: 0, z: steps * CHUNK_SIZE })).toBe(true);
+
+    expect(loaded).toHaveLength(side * steps);
+    expect(loaded.every((c) => c.z > CHUNK_RADIUS)).toBe(true);
+    expect(unloaded).toHaveLength(side * steps);
+    expect(unloaded.every((c) => c.z < steps - CHUNK_RADIUS)).toBe(true);
+    expect(keys(grid.values())).toEqual(expectedKeys(0, steps));
+  });
+
+  it("passes unload the exact value that load returned for that chunk", () => {
+    const { grid, unloaded } = createGrid();
+    grid.update({ x: 0, y: 0, z: 0 });
+    const leaving = [...grid.values()].filter((c) => c.x === -CHUNK_RADIUS);
+
+    grid.update({ x: CHUNK_SIZE, y: 0, z: 0 });
+
+    expect(unloaded).toHaveLength(leaving.length);
+    for (const chunk of leaving) expect(unloaded).toContain(chunk);
+  });
+
+  it("keeps the same value objects for every chunk that stays in range", () => {
+    const { grid } = createGrid();
+    grid.update({ x: 0, y: 0, z: 0 });
+    const staying = [...grid.values()].filter((c) => c.x > -CHUNK_RADIUS);
+
+    grid.update({ x: CHUNK_SIZE, y: 0, z: 0 });
+
+    const after = [...grid.values()];
+    for (const chunk of staying) expect(after).toContain(chunk);
+  });
+
+  it("never holds a chunk twice while moving back and forth", () => {
+    const { grid, loaded, unloaded } = createGrid();
+
+    for (const step of [0, 1, 3, 2, -2, -1, 0, 5, 4]) {
+      grid.update({ x: step * CHUNK_SIZE, y: 0, z: -step * CHUNK_SIZE });
+      expect(loaded.length - unloaded.length).toBe(CHUNK_COUNT);
+      expect(new Set(keys(grid.values())).size).toBe(CHUNK_COUNT);
+    }
+    expect(keys(grid.values())).toEqual(expectedKeys(4, -4));
+  });
+
+  it("does not call unload when clear() runs before the first update", () => {
+    const { grid, unloaded } = createGrid();
+
+    grid.clear();
+
+    expect(unloaded).toHaveLength(0);
+  });
+
+  it("unloads each chunk only once when clear() runs twice", () => {
+    const { grid, unloaded } = createGrid();
+    grid.update({ x: 0, y: 0, z: 0 });
+    const values = [...grid.values()];
+
+    grid.clear();
+    grid.clear();
+
+    expect(unloaded).toHaveLength(CHUNK_COUNT);
+    for (const chunk of values) expect(unloaded).toContain(chunk);
+  });
+});
