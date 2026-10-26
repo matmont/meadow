@@ -1,12 +1,12 @@
 // @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { ResourceId } from "../../Inventory";
-import ResourceCounter from "./ResourceCounter";
-import type { ResourceCounterSource } from "./ResourceCounter";
-import styles from "./ResourceCounter.module.css";
+import type { ResourceId } from "../../../Inventory";
+import ResourceCounter from "../ResourceCounter";
+import type { ResourceCounterSource } from "../ResourceCounter";
+import styles from "../ResourceCounter.module.css";
 
 // The icons are rendered with WebGL, which happy-dom does not provide
-vi.mock("./icons", () => ({
+vi.mock("../icons", () => ({
   renderResourceIcons: (): Record<ResourceId, string> => ({
     wood: "data:wood",
     stone: "data:stone",

@@ -5,7 +5,7 @@ import {
   CHUNK_SIZE,
   ChunkGrid,
   chunkSeed,
-} from "./chunks";
+} from "../chunks";
 
 interface TestChunk {
   readonly x: number;
