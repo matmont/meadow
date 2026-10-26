@@ -25,7 +25,7 @@ const defaultOptions: SunOptions = {
   focusOffset: { x: 0, y: 0, z: 0 },
   color: COLORS.sunlight,
   intensity: 5,
-  shadowSize: 15,
+  shadowSize: 30,
   mapSize: 2048,
 };
 

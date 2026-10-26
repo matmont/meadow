@@ -18,6 +18,7 @@ Meadow Waltz is an early-stage browser game about wandering through an endless m
 
 - Endless meadow: the ground plane follows the player over a half-space collider
 - Chunked low-poly vegetation drawn with `InstancedMesh` and placed with a seeded random generator
+- Trees of several models scattered in the same chunks, each with its own collider and interaction
 - Fog that hides the edge of the ground and chunks appearing
 - An animated, flickering campfire with its own point light
 - Screen-space wind streaks computed entirely in a shader
@@ -29,7 +30,7 @@ Meadow Waltz is an early-stage browser game about wandering through an endless m
 
 **Interaction and HUD**
 
-- Interaction system: the nearest target in front of the player is highlighted with an outline and shows a prompt (currently, trees can be hit with the axe; the effect of a hit is still to be designed)
+- Interaction system: the nearest target in front of the player is highlighted with an outline and shows a prompt (currently, trees shake when hit with the axe; wood and felling are still to be designed)
 - HTML/CSS HUD overlay: day-phase clock, tool bar with icons rendered from the 3D models, and world-anchored interaction prompts
 
 **Engine**
@@ -110,7 +111,7 @@ src/
 ├── CharacterAnimator.ts    Animation clips and transitions
 ├── entities/
 │   ├── Player/             Character movement, tools, and tool holder
-│   ├── World/              Endless ground and instanced vegetation
+│   ├── World/              Endless ground, instanced vegetation, chunked forest
 │   ├── DayNightCycle/      Solar elevation, lighting curve, time zones
 │   ├── WindStreaks/        Wind overlay and its shaders
 │   ├── Campfire.ts

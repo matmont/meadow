@@ -75,3 +75,35 @@ Si aggiunge il falò (`public/models/campfire/campfire.glb`): sassi, tronchi, br
 ### Conseguenze
 - Il falò costa circa 17 draw call più il pass delle ombre: trascurabile per un oggetto unico.
 - Se in futuro servono molti falò (per esempio accampamenti sparsi nei chunk), andranno istanziati con un nuovo ADR, decidendo anche quante luci tenere accese.
+
+## 004 — Alberi casuali nei chunk come entità `Tree`, gestiti da `Forest`
+
+- **Data:** 2026-10-26
+- **Stato:** accettata. Risolve il punto lasciato aperto nella [001](#001--prato-infinito-piano-che-segue-il-player-collider-half-space-vegetazione-a-chunk-nebbia) ("Alberi e rocce sono ancora piazzati a mano"), per gli alberi.
+
+### Contesto
+Gli alberi devono comparire in modo casuale e deterministico come erba e fiori. A differenza delle piante, però, ogni albero ha un collider, un `Interactable` (si colpisce con l'ascia) e uno stato proprio (la scossa, vedi [tree-harvest](tree-harvest.md)).
+
+### Decisione
+- **`ChunkGrid`** (`src/entities/World/chunks.ts`) raccoglie la logica dei chunk che prima stava in `Vegetation`: `CHUNK_SIZE`, `CHUNK_RADIUS`, `chunkSeed()` e il caricamento e scaricamento al cambio di chunk, con callback `load`/`unload`. `Vegetation` la usa con `unload` vuoto. Il seed della vegetazione non cambia (salt 0), quindi erba e fiori restano dove erano.
+- **`Forest`** (`src/entities/World/Forest.ts`) è un'entità che segue il player (`followed`) e riceve l'`EntityManager` nel costruttore:
+  - al caricamento di un chunk crea fino a 3 `Tree` con `entities.add()`;
+  - allo scaricamento chiama `destroy()` sui suoi alberi, e la rimozione avviene nel passo differito dell'`EntityManager`;
+  - in `onRemoved()` svuota la griglia, quindi distrugge anche gli alberi rimasti.
+- **Generazione:** seed del chunk con un salt proprio (`FOREST_SALT`), così gli alberi non riusano la sequenza dell'erba. Ogni albero ha modello (7 modelli, pini scuri e alberi verdi), posizione, rotazione attorno a Y e scala (0,8–1,25) casuali. Si estraggono sempre tutti i valori di un candidato, anche quando viene scartato, così il contenuto dipende solo dalle coordinate del chunk.
+- **Distanze:** almeno 6 m fra due tronchi. Gli alberi stanno a mezza distanza minima dai bordi del chunk, quindi la regola vale anche fra chunk vicini. Un candidato troppo vicino si riestrae fino a 8 volte, poi l'albero si salta. Entro 10 m dall'origine non ci sono alberi casuali: lì ci sono il punto di partenza, il falò e l'albero piazzato a mano in `main.ts`, che resta.
+- **`Tree`** accetta `model`, `rotation` e `scale` come opzioni. Misura il collider prima di applicare la rotazione.
+- I parametri della scossa sono condivisi (`TREE_SHAKE`) e stanno nella cartella di debug di `Forest`, insieme al pulsante `shake all trees`. Così con `?debug` non compare una cartella per ogni albero.
+
+### Alternative scartate
+- **Alberi in `InstancedMesh` come la vegetazione**, con collider e interactable a parte: meno draw call, ma la scossa diventerebbe una riscrittura della matrice dell'istanza, e collider, focus e outline andrebbero gestiti fuori da un'entità (l'outline oggi salta le `InstancedMesh`). Con circa 75 alberi caricati il costo delle entità è accettabile. Da rivalutare se la densità cresce molto.
+- **Alberi aggiunti come figli di `Forest` senza `EntityManager`:** `Forest` dovrebbe richiamare a mano `onAdded`, `update`, `onRemoved` e `dispose` di ogni albero, duplicando il ciclo di vita.
+- **`Ground` o `Vegetation` che generano anche gli alberi:** `Ground` ha già terreno, collider e colonna sonora, e `Vegetation` non è un'entità. Una classe separata tiene distinti il disegno delle piante e il ciclo di vita delle entità.
+- **Distanza minima solo dentro il chunk:** due alberi su lati opposti di un bordo potrebbero toccarsi. Il margine dal bordo lo evita senza dover guardare i chunk vicini.
+
+### Conseguenze
+- Con 3 alberi per chunk e 25 chunk caricati ci sono fino a 75 alberi: circa 150 draw call in più (2 mesh per modello), 75 corpi fissi in Rapier e 75 interactable valutati a ogni frame dall'`InteractionManager`. Il pass delle ombre ne vede solo pochi, perché il frustum del `Sun` è stretto.
+- Al cambio di chunk si creano fino a 15 alberi nello stesso frame (clone del modello, `Box3`, corpo Rapier). Se diventasse un picco visibile, la creazione si potrà distribuire su più frame.
+- `Forest` è la prima entità che crea altre entità: lo fa tramite l'`EntityManager` ricevuto nel costruttore, e chi crea distrugge.
+- Lo stato degli alberi (scossa, e in futuro legna o abbattimento) si perde quando il loro chunk viene scaricato: tornando, l'albero è di nuovo intatto. Per ricordare gli alberi abbattuti servirà salvare uno stato per chunk.
+- Erba e fiori possono ancora crescere vicino a un tronco, perché le due generazioni non si conoscono.

@@ -1,6 +1,7 @@
 import { Color, Fog, Vector3 } from "three";
 import { Engine } from "./Engine";
 import Ground from "./entities/World/Ground";
+import Forest from "./entities/World/Forest";
 import FootDust from "./particles/FootDust/FootDust";
 import Tree from "./entities/Tree";
 import Campfire from "./entities/Campfire";
@@ -42,6 +43,8 @@ engine.entities.add(new Campfire({ x: 5, y: 0, z: -0.5 }));
 const player = engine.entities.add(new Player(new Vector3(0, 10, 0)));
 InteractionManager.init(player);
 engine.entities.add(new Ground(player.object));
+// Random trees in chunks around the player; the tree above is placed by hand near the camp
+engine.entities.add(new Forest(player.object, engine.entities));
 engine.particles.add(new FootDust(player));
 engine.entities.add(
   new FollowCamera(engine.camera, player.object, {
@@ -60,7 +63,7 @@ if (DebugManager.isEnabled) {
 const sun = engine.entities.add(
   new Sun(player.object, {
     focusOffset: { x: 0, y: 0, z: -8 },
-    shadowSize: 15,
+    shadowSize: 30,
   }),
 );
 // Hides where the ground plane ends and where vegetation chunks appear; distances are from
@@ -76,7 +79,10 @@ const dayNightCycle = engine.entities.add(
 
 UIManager.add(new DayClock(dayNightCycle), "topLeft");
 UIManager.add(new ToolBar(player), "bottomLeft");
-UIManager.add(new InteractionPrompt(InteractionManager, engine.camera), "world");
+UIManager.add(
+  new InteractionPrompt(InteractionManager, engine.camera),
+  "world",
+);
 
 engine.start();
 import.meta.hot?.dispose(() => {

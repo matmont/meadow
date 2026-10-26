@@ -108,6 +108,42 @@ const ASSETS = {
       scale: 3,
       nonMetallic: true,
     },
+    treePineB: {
+      format: "gltf",
+      url: "models/tree_pineRoundB.glb",
+      scale: 3,
+      nonMetallic: true,
+    },
+    treePineC: {
+      format: "gltf",
+      url: "models/tree_pineRoundC.glb",
+      scale: 3,
+      nonMetallic: true,
+    },
+    treePineE: {
+      format: "gltf",
+      url: "models/tree_pineRoundE.glb",
+      scale: 3,
+      nonMetallic: true,
+    },
+    treePineTall: {
+      format: "gltf",
+      url: "models/tree_pineTallA.glb",
+      scale: 3,
+      nonMetallic: true,
+    },
+    treeDefault: {
+      format: "gltf",
+      url: "models/tree_default.glb",
+      scale: 3,
+      nonMetallic: true,
+    },
+    treeOak: {
+      format: "gltf",
+      url: "models/tree_oak.glb",
+      scale: 3,
+      nonMetallic: true,
+    },
     rockTall: {
       format: "gltf",
       url: "models/rock_tallJ.glb",

@@ -4,13 +4,7 @@ import LoaderManager from "../../LoaderManager";
 import type { ModelId } from "../../LoaderManager";
 import { createSeededRandom, scatterModels } from "./utils";
 import type { Placement, ScatterOptions } from "./utils";
-
-const CHUNK_SIZE = 32;
-// Chunks loaded on each side of the player's chunk: (2 * radius + 1)² in total. With 32m
-// chunks the loaded area reaches at least 64m from the player, past the fog in main.ts
-const CHUNK_RADIUS = 2;
-const CHUNK_COUNT = (CHUNK_RADIUS * 2 + 1) ** 2;
-const WORLD_SEED = 0x3a17c9;
+import { CHUNK_COUNT, CHUNK_SIZE, ChunkGrid, chunkSeed } from "./chunks";
 
 const FLOWER_MODELS = [
   "flowerPurple",
@@ -42,12 +36,6 @@ const LAYERS: readonly ScatterOptions[] = [
   },
 ];
 
-interface Chunk {
-  readonly x: number;
-  readonly z: number;
-  readonly placements: readonly Placement[];
-}
-
 // One instanced draw call for each mesh of a model. `offset` is the mesh transform inside
 // the model, applied on top of each placement
 interface Batch {
@@ -61,10 +49,12 @@ interface Batch {
 export default class Vegetation {
   readonly object = new Group();
   readonly #batches = new Map<ModelId, Batch[]>();
-  readonly #chunks = new Map<string, Chunk>();
+  // Chunks only hold placements, so unloading one has nothing to release
+  readonly #chunks = new ChunkGrid<readonly Placement[]>({
+    load: createPlacements,
+    unload: () => {},
+  });
   readonly #instanceMatrix = new Matrix4();
-  #centerX = NaN;
-  #centerZ = NaN;
 
   constructor() {
     this.object.name = "vegetation";
@@ -80,30 +70,7 @@ export default class Vegetation {
   }
 
   update(position: Vector3Like): void {
-    const centerX = Math.floor(position.x / CHUNK_SIZE);
-    const centerZ = Math.floor(position.z / CHUNK_SIZE);
-    if (centerX === this.#centerX && centerZ === this.#centerZ) return;
-    this.#centerX = centerX;
-    this.#centerZ = centerZ;
-
-    for (const [key, chunk] of this.#chunks) {
-      if (
-        Math.abs(chunk.x - centerX) > CHUNK_RADIUS ||
-        Math.abs(chunk.z - centerZ) > CHUNK_RADIUS
-      ) {
-        this.#chunks.delete(key);
-      }
-    }
-
-    for (let x = centerX - CHUNK_RADIUS; x <= centerX + CHUNK_RADIUS; x++) {
-      for (let z = centerZ - CHUNK_RADIUS; z <= centerZ + CHUNK_RADIUS; z++) {
-        const key = `${x},${z}`;
-        if (this.#chunks.has(key)) continue;
-        this.#chunks.set(key, { x, z, placements: createPlacements(x, z) });
-      }
-    }
-
-    this.#writeInstances();
+    if (this.#chunks.update(position)) this.#writeInstances();
   }
 
   dispose(): void {
@@ -120,8 +87,8 @@ export default class Vegetation {
       for (const { mesh } of batches) mesh.count = 0;
     }
 
-    for (const chunk of this.#chunks.values()) {
-      for (const { model, matrix } of chunk.placements) {
+    for (const placements of this.#chunks.values()) {
+      for (const { model, matrix } of placements) {
         for (const { mesh, offset } of this.#batches.get(model)!) {
           this.#instanceMatrix.multiplyMatrices(matrix, offset);
           mesh.setMatrixAt(mesh.count++, this.#instanceMatrix);
@@ -166,10 +133,4 @@ function createPlacements(chunkX: number, chunkZ: number): Placement[] {
     size: CHUNK_SIZE,
   };
   return LAYERS.flatMap((layer) => scatterModels(area, layer, random));
-}
-
-function chunkSeed(chunkX: number, chunkZ: number): number {
-  return (
-    WORLD_SEED ^ Math.imul(chunkX, 0x27d4eb2d) ^ Math.imul(chunkZ, 0x165667b1)
-  );
 }
