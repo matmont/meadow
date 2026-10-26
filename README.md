@@ -31,7 +31,7 @@ Meadow Waltz is an early-stage browser game about wandering through an endless m
 **Interaction and HUD**
 
 - Interaction system: the nearest target in front of the player is highlighted with an outline and shows a prompt (currently, trees shake when hit with the axe; wood and felling are still to be designed)
-- HTML/CSS HUD overlay: day-phase clock, tool bar with icons rendered from the 3D models, and world-anchored interaction prompts
+- HTML/CSS HUD overlay: day-phase clock, tool bar with icons rendered from the 3D models, a resource counter that shows only what the player carries, and world-anchored interaction prompts
 
 **Engine**
 
@@ -130,7 +130,7 @@ src/
 │   └── Tree.ts
 ├── interaction/            Interactable, InteractionManager, outline
 ├── particles/              ParticleEffect, ParticleSystem, InstancedParticles, FootDust
-└── ui/                     HUD components (DayClock, ToolBar, InteractionPrompt)
+└── ui/                     HUD components (DayClock, ToolBar, ResourceCounter, InteractionPrompt)
 
 public/
 ├── models/                 GLB assets (and some Blender sources)

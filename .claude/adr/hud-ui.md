@@ -45,3 +45,29 @@ Il prompt di interazione (vedi [interaction.md](interaction.md)) deve comparire 
 
 ### Conseguenze
 - Con molti elementi ancorati (per esempio etichette su decine di oggetti) la proiezione per componente e i binding per frame andranno rivalutati.
+
+## 003 — `ResourceCounter`: solo le risorse possedute, icone dai modelli 3D
+
+- **Data:** 2026-10-26
+- **Stato:** accettata
+
+### Contesto
+Il player deve vedere quante risorse porta con sé (vedi [inventory.md](inventory.md)). La visione del gioco chiede una HUD minima, e per ora nessuna azione di gioco aggiunge risorse.
+
+### Decisione
+- `ResourceCounter` sta nello slot `topRight` e legge l'`Inventory` creato in `main.ts` tramite l'interfaccia minima `ResourceCounterSource` (`count(resource)`).
+- Crea una voce per ogni risorsa di `RESOURCE_IDS`, nell'ordine di visualizzazione, ma mostra solo quelle con conteggio > 0. Il pannello intero è nascosto (una classe `display: none`) finché tutti i conteggi sono 0. Un binding numerico per risorsa più un binding booleano per il pannello: nessuna allocazione per frame.
+- Le icone si renderizzano una volta sola dai modelli 3D (`log.glb`, `rock_smallA.glb`, `mushroom_red.glb`, registrati in `LoaderManager`), con lo stesso approccio della `ToolBar`: un `WebGLRenderer` temporaneo che produce data URL PNG e viene subito distrutto. L'inquadratura si adatta alla bounding sphere del modello, così non servono rotazioni a mano per ogni risorsa.
+- Quando un conteggio aumenta, `write` riavvia un'animazione CSS (`pulse`) sulla voce; nessun timer in JavaScript.
+- Finché nessun gameplay aggiunge risorse, con `?debug` una cartella "Inventory" ha un pulsante per aggiungere 1 di ogni risorsa. È creata in `main.ts` e distrutta nel cleanup HMR prima di `DebugManager.dispose()`.
+
+### Alternative scartate
+- **Mostrare sempre tutte le risorse, anche a 0:** più rumore sullo schermo, contro la richiesta di una HUD minima.
+- **Etichette di testo o emoji al posto delle icone:** meno coerenti con la `ToolBar`, e le emoji cambiano aspetto da un sistema all'altro.
+- **Estrarre un helper comune con `ToolBar/icons.ts`:** le inquadrature sono diverse (profilo degli attrezzi contro vista di tre quarti dei props) e il refactoring della `ToolBar` era fuori dallo scope; da rivalutare se arrivano altre icone renderizzate da modelli.
+- **Web Animations API (`element.animate()`) per il pulse:** alloca un'animazione per ogni aumento e sposta lo stile nel TypeScript; la classe CSS basta.
+
+### Conseguenze
+- Una nuova risorsa richiede un modello in `LoaderManager`, una voce in `ICON_MODELS` e un nome in `RESOURCE_NAMES`: i `Record<ResourceId, …>` fanno fallire `tsc` se manca.
+- Tre modelli in più da caricare all'avvio, solo per le icone.
+- Il riavvio dell'animazione forza un layout, ma solo quando un conteggio aumenta, mai a ogni frame.

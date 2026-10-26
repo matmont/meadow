@@ -150,6 +150,22 @@ const ASSETS = {
       scale: 3,
       nonMetallic: true,
     },
+    // Only rendered once into HUD icons by `ResourceCounter`, so they keep their file scale
+    resourceWood: {
+      format: "gltf",
+      url: "models/log.glb",
+      nonMetallic: true,
+    },
+    resourceStone: {
+      format: "gltf",
+      url: "models/rock_smallA.glb",
+      nonMetallic: true,
+    },
+    resourceMushroom: {
+      format: "gltf",
+      url: "models/mushroom_red.glb",
+      nonMetallic: true,
+    },
     campfire: { format: "gltf", url: "models/campfire/campfire.glb" },
     explorer: { format: "gltf", url: "models/characters/character.glb" },
     tools: { format: "gltf", url: "models/tools/character_tools.glb" },
