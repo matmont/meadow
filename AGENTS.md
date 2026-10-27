@@ -13,6 +13,7 @@ Vitest is the test runner (see [Tests](#tests)). There is no application framewo
 - `src/Engine.ts`: render loop, timing, resizing, scene, camera, renderer, and entity manager.
 - `src/Entity.ts`, `src/EntityManager.ts`: entity lifecycle and scene attachment/removal.
 - `src/entities/`: scene objects and gameplay behavior.
+- `src/entities/World/WorldChanges.ts`: session-only registry of removals of generated objects (for example felled trees), keyed by `worldKey(layer, chunkX, chunkZ, index)` with the game time of the removal, so they survive chunk reloads; an instance created in `main.ts`. It is plain logic next to `chunks.ts`, not an entity. See `.claude/adr/world-changes.md`.
 - `src/LoaderManager.ts`: typed asset registry, loading, caching, and model instantiation.
 - `src/PhysicsManager.ts`: Rapier initialization, world access, stepping, and teardown.
 - `src/InputManager.ts`, `src/DebugManager.ts`: global input and debug-GUI lifecycles.
