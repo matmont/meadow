@@ -59,7 +59,7 @@ Il player deve vedere quante risorse porta con sé (vedi [inventory.md](inventor
 - Crea una voce per ogni risorsa di `RESOURCE_IDS`, nell'ordine di visualizzazione, ma mostra solo quelle con conteggio > 0. Il pannello intero è nascosto (una classe `display: none`) finché tutti i conteggi sono 0. Un binding numerico per risorsa più un binding booleano per il pannello: nessuna allocazione per frame.
 - Le icone si renderizzano una volta sola dai modelli 3D (`log.glb`, `rock_smallA.glb`, `mushroom_red.glb`, registrati in `LoaderManager`), con lo stesso approccio della `ToolBar`: un `WebGLRenderer` temporaneo che produce data URL PNG e viene subito distrutto. L'inquadratura si adatta alla bounding sphere del modello, così non servono rotazioni a mano per ogni risorsa.
 - Quando un conteggio aumenta, `write` riavvia un'animazione CSS (`pulse`) sulla voce; nessun timer in JavaScript.
-- Finché nessun gameplay aggiunge risorse, con `?debug` una cartella "Inventory" ha un pulsante per aggiungere 1 di ogni risorsa. È creata in `main.ts` e distrutta nel cleanup HMR prima di `DebugManager.dispose()`.
+- Finché nessun gameplay aggiunge risorse, con `?debug` una cartella "Inventory" ha un pulsante per aggiungere 1 di ogni risorsa. La crea e la distrugge l'`Inventory` stesso (vedi [inventory 002](inventory.md)).
 
 ### Alternative scartate
 - **Mostrare sempre tutte le risorse, anche a 0:** più rumore sullo schermo, contro la richiesta di una HUD minima.
