@@ -30,7 +30,7 @@ Meadow Waltz is an early-stage browser game about wandering through an endless m
 
 **Interaction and HUD**
 
-- Interaction system: the nearest target in front of the player is highlighted with an outline and shows a prompt (currently, trees shake when hit with the axe and fall after a few hits, leaving a stump and giving wood; felled trees stay felled when their chunk is reloaded)
+- Interaction system: the nearest target in front of the player is highlighted with an outline and shows a prompt (currently, trees shake when hit with the axe and fall after a few hits, leaving a stump and giving wood; felled trees stay felled when their chunk is reloaded and grow back after a configurable delay, 5 minutes by default)
 - HTML/CSS HUD overlay: day-phase clock, tool bar with icons rendered from the 3D models, a resource counter that shows only what the player carries, and world-anchored interaction prompts
 
 **Engine**

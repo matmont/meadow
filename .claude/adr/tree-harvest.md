@@ -51,7 +51,7 @@ Con gli alberi generati nei chunk (vedi [world 004](world.md#004--alberi-casuali
 ## 003 — Abbattimento dopo N colpi, ceppo, legna e stato in `WorldChanges`, gestiti da `Forest`
 
 - **Data:** 2026-10-26
-- **Stato:** accettata. Estende la [002](#002--parametri-della-scossa-condivisi-tilt-composto-con-la-rotazione-di-base) con i parametri dell'abbattimento e risolve, per gli alberi, la conseguenza della [world 004](world.md#004--alberi-casuali-nei-chunk-come-entità-tree-gestiti-da-forest) sullo stato perso allo scaricamento del chunk.
+- **Stato:** accettata. Estende la [002](#002--parametri-della-scossa-condivisi-tilt-composto-con-la-rotazione-di-base) con i parametri dell'abbattimento e risolve, per gli alberi, la conseguenza della [world 004](world.md#004--alberi-casuali-nei-chunk-come-entità-tree-gestiti-da-forest) sullo stato perso allo scaricamento del chunk. L'aggancio per la ricrescita è realizzato il 2026-10-26 dalla [004](#004--ricrescita-degli-alberi-abbattuti-dopo-un-ritardo-configurabile-decisa-da-forest).
 
 ### Contesto
 Colpire un albero con l'ascia lo scuoteva soltanto. Ora, dopo un certo numero di colpi, l'albero deve cadere, sparire e lasciare un ceppo, e il player deve ricevere legna nell'`Inventory` della sessione (vedi [inventory](inventory.md)). L'abbattimento deve sopravvivere allo scaricamento del chunk, tramite il registro `WorldChanges` (vedi [world-changes 001](world-changes.md)). La ricrescita è il passo successivo e qui va solo preparata.
@@ -79,3 +79,34 @@ Colpire un albero con l'ascia lo scuoteva soltanto. Ora, dopo un certo numero di
 - L'albero cade attraverso gli oggetti vicini e il terreno senza collisioni: è solo visivo e sparisce a fine caduta.
 - Al caricamento di un chunk con alberi abbattuti si creano ceppi invece di alberi: costo minore (un clone e un corpo fisso, nessun interactable).
 - I colpi parziali e le oscillazioni si perdono allo scaricamento del chunk, come prima.
+
+## 004 — Ricrescita degli alberi abbattuti dopo un ritardo configurabile, decisa da `Forest`
+
+- **Data:** 2026-10-26
+- **Stato:** accettata. Realizza l'aggancio per la ricrescita preparato nella [003](#003--abbattimento-dopo-n-colpi-ceppo-legna-e-stato-in-worldchanges-gestiti-da-forest).
+
+### Contesto
+Un albero abbattuto lascia un ceppo per sempre. Gli alberi devono ricrescere dopo un ritardo di tempo di gioco, e il ritardo deve essere configurabile. `WorldChanges` registra solo il momento della rimozione (`removedAt`) e lascia la politica a chi lo usa (vedi [world-changes](world-changes.md)).
+
+### Decisione
+- **Parametri condivisi:** `TREE_REGROWTH` (`delay` 300 s, `growDuration` 1,5 s), esportato da `Tree.ts` accanto a `TREE_SHAKE` e `TREE_FELLING` e regolato dalla stessa cartella di debug di `Forest`. Entrambi in secondi di tempo di gioco (`elapsed` dell'engine).
+- **Ritardo letto a ogni controllo:** una voce è pronta quando `isRegrowthDue(removedAt, elapsed, delay)`, cioè `elapsed - removedAt >= delay`. Il registro conserva l'istante della rimozione e non una scadenza, quindi cambiare il ritardo dalla GUI vale subito anche per i ceppi già presenti.
+- **Passo per frame su una lista di ceppi:** `Forest` tiene `#stumps`, le voci caricate che contengono un ceppo (aggiunte in `#plantStump`, tolte con swap-remove alla ricrescita e allo scaricamento). `update()` scorre solo quella lista, legge un numero dal registro e non alloca. Senza ceppi caricati il costo è nullo.
+- **Ricrescita mentre il chunk è caricato:** il ceppo viene distrutto (rimozione differita), la chiave torna allo stato generato con `restore(key)` e la voce riceve un nuovo `Tree` con l'opzione `grow`. L'albero nasce con il collider già a piena grandezza e la scala del modello al 5%, che cresce fino al 100% in `growDuration` con `growEase(t) = 1 - (1 - t)³` (ease-out cubico), in funzione del tempo accumulato dai `delta`. Durante la crescita l'`Interactable` è disabilitato.
+- **Il player non resta intrappolato:** se l'oggetto seguito è entro il raggio del collider dell'albero più un margine (`REGROWTH_MARGIN`, 0,5 m: il raggio della capsula del player più un po' di gioco), la ricrescita aspetta che si allontani. Il raggio non scalato di ogni modello si misura una volta, al primo bisogno, con `treeColliderRadius()` (clona il modello e ne misura il box come il costruttore di `Tree`) e resta in cache nell'istanza di `Forest`.
+- **Ricrescita al caricamento:** se una voce ha una rimozione più vecchia del ritardo, `#spawn` chiama `restore(key)` e crea direttamente l'albero, senza animazione: nessuno lo stava guardando.
+- **Un albero ricresciuto è un albero normale:** stessa voce, stesse callback, quindi si abbatte di nuovo (nuovo `markRemoved`) e dà di nuovo legna.
+- **Debug:** cursori `regrowth delay` (0–900 s) e `grow duration`, più un pulsante `regrow all stumps now` che fa ricrescere subito tutti i ceppi caricati, sempre rispettando il controllo sul player.
+
+### Alternative scartate
+- **Scadenza salvata nel registro** (`markRemoved(key, elapsed + delay)`): cambiare il ritardo non varrebbe per i ceppi esistenti, e `WorldChanges` dovrebbe conoscere la politica di ricrescita.
+- **Timer nell'entità `Stump`:** si perderebbe allo scaricamento del chunk, e il ceppo dovrebbe sapere come ricreare l'albero. La voce di `Forest` ha già tutto.
+- **Scorrere tutti i chunk caricati a ogni frame:** con 25 chunk e circa 75 voci non è caro, ma la lista dei ceppi è vuota quasi sempre e costa ancora meno.
+- **Collider che cresce con l'albero:** servirebbe ricreare il collider a ogni frame dell'animazione; il controllo sulla posizione del player basta a evitare che resti incastrato.
+- **Ricrescita forzata anche sotto il player dal pulsante di debug:** comodo, ma intrappolerebbe il player proprio nel caso che il controllo vuole evitare.
+
+### Conseguenze
+- `ForestWorldChanges` include anche `restore`.
+- Un ceppo sotto il player ricresce appena il player si sposta, anche se il ritardo è passato da molto: non c'è un secondo ritardo.
+- Il raggio usato per il controllo è quello del collider di `Tree` (il lato minore del box dell'intero modello), più largo del tronco: il player deve allontanarsi di qualche metro dal ceppo.
+- La prima ricrescita di ogni modello clona il modello una volta per misurarlo.
