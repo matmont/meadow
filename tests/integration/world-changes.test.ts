@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import WorldChanges, { worldKey } from "../../src/WorldChanges";
+import WorldChanges, { worldKey } from "../../src/entities/World/WorldChanges";
 import {
   CHUNK_RADIUS,
   CHUNK_SIZE,
