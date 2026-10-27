@@ -20,6 +20,8 @@ import UIManager from "./UIManager";
 import DayClock from "./ui/DayClock/DayClock";
 import ToolBar from "./ui/ToolBar/ToolBar";
 import InteractionPrompt from "./ui/InteractionPrompt/InteractionPrompt";
+import ResourceCounter from "./ui/ResourceCounter/ResourceCounter";
+import Inventory from "./Inventory";
 import InteractionManager from "./interaction/InteractionManager";
 import { COLORS } from "./colors";
 
@@ -38,6 +40,8 @@ AudioManager.init();
 UIManager.init(uiRoot);
 
 const engine = new Engine({ canvas });
+// The single inventory of the session: gatherers add to it, the HUD only reads it
+const inventory = new Inventory();
 engine.entities.add(new Tree({ x: 3, y: 0, z: -2 }));
 engine.entities.add(new Campfire({ x: 5, y: 0, z: -0.5 }));
 const player = engine.entities.add(new Player(new Vector3(0, 10, 0)));
@@ -83,6 +87,7 @@ UIManager.add(
   new InteractionPrompt(InteractionManager, engine.camera),
   "world",
 );
+UIManager.add(new ResourceCounter(inventory), "topRight");
 
 engine.start();
 import.meta.hot?.dispose(() => {
@@ -92,5 +97,6 @@ import.meta.hot?.dispose(() => {
   PhysicsManager.dispose();
   AudioManager.dispose();
   UIManager.dispose();
+  inventory.dispose();
   DebugManager.dispose();
 });

@@ -1,0 +1,52 @@
+.panel {
+  display: flex;
+  gap: 12px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--hud-panel);
+}
+
+.entry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.icon {
+  width: 32px;
+  height: 32px;
+}
+
+.value {
+  min-width: 1ch;
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.hidden {
+  display: none;
+}
+
+/* Plays once when a count increases; the color comes back to the inherited text color */
+.pulse .icon {
+  animation: pulse 0.35s ease-out;
+}
+
+.pulse .value {
+  animation:
+    pulse 0.35s ease-out,
+    highlight 0.6s ease-out;
+}
+
+@keyframes pulse {
+  40% {
+    transform: scale(1.25);
+  }
+}
+
+@keyframes highlight {
+  from {
+    color: var(--hud-accent);
+  }
+}

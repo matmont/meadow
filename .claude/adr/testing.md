@@ -56,3 +56,25 @@ La 001 metteva i test unitari accanto al modulo come `foo.test.ts`. Con la cresc
 - Gli import relativi nei test unitari partono da `../` (per esempio `import { chunkSeed } from "../chunks";`), e lo stesso vale per i percorsi in `vi.mock`.
 - Spostare un modulo richiede di spostare anche la sua cartella `__tests__/` (o il file di test al suo interno).
 - Il conteggio dei test va controllato dopo ogni spostamento: un file fuori da `__tests__/` smette di essere raccolto senza errori.
+
+## 003 — `happy-dom` per i test dei componenti HUD
+
+- **Data:** 2026-10-26
+- **Stato:** accettata
+
+### Contesto
+`ResourceCounter` decide visibilità, ordine e numeri delle voci tramite i binding di `UIComponent`, che scrivono sul DOM. Senza un DOM non si può costruire il componente (`h()` usa `document.createElement`), quindi la sua logica restava scoperta.
+
+### Decisione
+- `happy-dom` diventa una devDependency (aggiunta con `yarn add -D`, solo `yarn.lock`).
+- L'ambiente di default resta `node`: solo i file che ne hanno bisogno attivano il DOM con `// @vitest-environment happy-dom`.
+- I moduli che usano WebGL (per esempio `src/ui/ResourceCounter/icons.ts`) si sostituiscono con `vi.mock`, perché happy-dom non fornisce un contesto WebGL.
+- Primi test: `src/ui/ResourceCounter/__tests__/ResourceCounter.test.ts` (unitario, con una sorgente finta) e `tests/integration/resource-counter.test.ts` (con `Inventory` e `UIManager` reali).
+
+### Alternative scartate
+- **jsdom:** più completo ma più pesante e lento ad avviarsi; ai componenti HUD bastano creazione di elementi, `classList` e `textContent`.
+- **DOM come ambiente di default:** rallenterebbe tutti i test e nasconderebbe dipendenze involontarie dal DOM nella logica pura.
+- **Estrarre la logica del componente in funzioni pure senza DOM:** avrebbe richiesto di modificare il codice di produzione solo per i test.
+
+### Conseguenze
+- I test HUD verificano classi e testo, non lo stile calcolato: i CSS module non vengono applicati, quindi animazioni e layout restano allo smoke test nel browser.
