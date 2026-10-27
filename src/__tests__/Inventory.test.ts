@@ -1,6 +1,12 @@
-import { describe, expect, expectTypeOf, it } from "vitest";
+import { describe, expect, expectTypeOf, it, vi } from "vitest";
 import Inventory, { RESOURCE_IDS } from "../Inventory";
 import type { ResourceId } from "../Inventory";
+
+// `DebugManager` reads `location` on import, which Node does not have; its debug folder is
+// covered by `tests/integration/inventory-debug.test.ts`
+vi.mock("../DebugManager", () => ({
+  default: { createFolder: (): null => null },
+}));
 
 // Compile-time complete list of `ResourceId`: adding or removing a member of the union
 // fails `tsc` here until this record is updated, and the runtime test below then checks
@@ -73,13 +79,15 @@ describe("Inventory contract", () => {
     expectTypeOf<Inventory["count"]>().toEqualTypeOf<
       (resource: ResourceId) => number
     >();
+    expectTypeOf<Inventory["dispose"]>().toEqualTypeOf<() => void>();
   });
 
-  it("has only add and count as public methods, with no removal API", () => {
+  it("has only add, count and dispose as public methods, with no removal API", () => {
     expect(Object.getOwnPropertyNames(Inventory.prototype).sort()).toEqual([
       "add",
       "constructor",
       "count",
+      "dispose",
     ]);
     expect(Object.keys(new Inventory())).toEqual([]);
   });
