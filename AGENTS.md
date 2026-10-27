@@ -13,12 +13,12 @@ Vitest is the test runner (see [Tests](#tests)). There is no application framewo
 - `src/Engine.ts`: render loop, timing, resizing, scene, camera, renderer, and entity manager.
 - `src/Entity.ts`, `src/EntityManager.ts`: entity lifecycle and scene attachment/removal.
 - `src/entities/`: scene objects and gameplay behavior.
+- `src/entities/World/WorldChanges.ts`: session-only registry of removals of generated objects (for example felled trees), keyed by `worldKey(layer, chunkX, chunkZ, index)` with the game time of the removal, so they survive chunk reloads; an instance created in `main.ts`. It is plain logic next to `chunks.ts`, not an entity. See `.claude/adr/world-changes.md`.
 - `src/LoaderManager.ts`: typed asset registry, loading, caching, and model instantiation.
 - `src/PhysicsManager.ts`: Rapier initialization, world access, stepping, and teardown.
 - `src/InputManager.ts`, `src/DebugManager.ts`: global input and debug-GUI lifecycles.
 - `src/AudioManager.ts`: plays and stops sounds loaded by `LoaderManager`, mute state, and the "Audio" debug folder.
 - `src/Inventory.ts`: session-only counts of the resources the player has gathered (`ResourceId`, `RESOURCE_IDS`); an instance created in `main.ts` and passed to whoever adds or reads them. It owns its `?debug` "Inventory" folder, so `main.ts` calls `inventory.dispose()` in the HMR cleanup before `DebugManager.dispose()`. See `.claude/adr/inventory.md`.
-- `src/WorldChanges.ts`: session-only registry of removals of generated objects (for example felled trees), keyed by `worldKey(layer, chunkX, chunkZ, index)` with the game time of the removal, so they survive chunk reloads; an instance created in `main.ts`. See `.claude/adr/world-changes.md`.
 - `src/UIManager.ts`: 2D HUD overlay lifecycle: layout slots inside `#ui`, mounting, per-frame binding sync, and teardown.
 - `src/particles/`: particle effects (`ParticleEffect` subclasses), each in its own folder (for example `src/particles/FootDust/`), plus the shared `ParticleSystem` and the CPU backend `InstancedParticles`.
 - `src/interaction/`: `Interactable` (owned by interactable entities), `InteractionManager` (focus selection, action dispatch), and the inverted-hull `Outline`.

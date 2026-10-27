@@ -12,7 +12,7 @@ import {
 } from "vitest";
 import Inventory from "../../src/Inventory";
 import PhysicsManager from "../../src/PhysicsManager";
-import WorldChanges, { worldKey } from "../../src/WorldChanges";
+import WorldChanges, { worldKey } from "../../src/entities/World/WorldChanges";
 import Stump from "../../src/entities/Stump";
 import Tree, {
   TREE_FELLING,

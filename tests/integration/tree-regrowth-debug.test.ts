@@ -17,7 +17,7 @@ import {
 import DebugManager from "../../src/DebugManager";
 import Inventory from "../../src/Inventory";
 import PhysicsManager from "../../src/PhysicsManager";
-import WorldChanges, { worldKey } from "../../src/WorldChanges";
+import WorldChanges, { worldKey } from "../../src/entities/World/WorldChanges";
 import Stump from "../../src/entities/Stump";
 import Tree, { TREE_REGROWTH } from "../../src/entities/Tree";
 import Forest from "../../src/entities/World/Forest";
