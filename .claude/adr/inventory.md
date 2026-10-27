@@ -25,3 +25,25 @@ Il player raccoglierà risorse (legna abbattendo gli alberi, poi pietra e funghi
 - Chi raccoglie risorse deve ricevere l'istanza nel constructor; `main.ts` resta il punto in cui viene creata e collegata.
 - Aggiungere una risorsa significa estendere `ResourceId`, `RESOURCE_IDS` e il conteggio iniziale in `Inventory`.
 - Con l'HMR di `main.ts` l'istanza viene ricreata e i conteggi ripartono da zero, coerente con lo stato di sola sessione.
+
+## 002 — L'`Inventory` possiede la sua cartella di debug
+
+- **Data:** 2026-10-27
+- **Stato:** accettata
+
+### Contesto
+Con `?debug` serve una cartella "Inventory" con un pulsante per aggiungere 1 di ogni risorsa, per provare a mano la HUD (vedi [hud-ui 003](hud-ui.md)) finché nessun gameplay raccoglie pietra e funghi. La prima versione la creava in `main.ts`, separata dallo stato che modifica.
+
+### Decisione
+- Il constructor di `Inventory` crea la cartella con `DebugManager.createFolder("Inventory", …)`, come `AudioManager` fa con la sua: chi possiede lo stato possiede anche i controlli di debug.
+- `Inventory.dispose()` distrugge la cartella. `main.ts` la chiama nel cleanup HMR prima di `DebugManager.dispose()`, così dopo un reload resta una sola cartella.
+- Il test unitario di `Inventory` resta nell'ambiente `node` e sostituisce `DebugManager` con `vi.mock`, perché `DebugManager` legge `location` quando viene importato. La cartella è coperta da `tests/integration/inventory-debug.test.ts` con happy-dom e `?debug`.
+
+### Alternative scartate
+- **Cartella creata in `main.ts`:** lascia a `main.ts` un pezzo di logica dell'inventario e un riferimento da distruggere a mano; ogni altra istanza (per esempio nei test) non avrebbe i suoi controlli.
+- **Rendere `DebugManager.isEnabled` sicuro senza `location`:** cambierebbe codice di produzione solo per i test.
+- **Spostare il test unitario di `Inventory` su happy-dom:** rallenta un test di logica pura e nasconde dipendenze involontarie dal DOM.
+
+### Conseguenze
+- `Inventory` ha un lifecycle: chi crea un'istanza con `?debug` attivo deve chiamare `dispose()` una sola volta (lil-gui non tollera un doppio `destroy()` della stessa cartella).
+- Importare `Inventory` porta con sé `DebugManager` e `lil-gui`: i test in ambiente `node` che lo importano devono sostituire `DebugManager`.

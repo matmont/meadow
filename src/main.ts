@@ -21,7 +21,7 @@ import DayClock from "./ui/DayClock/DayClock";
 import ToolBar from "./ui/ToolBar/ToolBar";
 import InteractionPrompt from "./ui/InteractionPrompt/InteractionPrompt";
 import ResourceCounter from "./ui/ResourceCounter/ResourceCounter";
-import Inventory, { RESOURCE_IDS } from "./Inventory";
+import Inventory from "./Inventory";
 import InteractionManager from "./interaction/InteractionManager";
 import { COLORS } from "./colors";
 
@@ -89,18 +89,6 @@ UIManager.add(
 );
 UIManager.add(new ResourceCounter(inventory), "topRight");
 
-// Nothing gathers resources yet: lets the HUD counter be tested by hand
-const inventoryDebugFolder = DebugManager.createFolder(
-  "Inventory",
-  (folder) => {
-    for (const resource of RESOURCE_IDS) {
-      folder
-        .add({ add: () => inventory.add(resource) }, "add")
-        .name(`add 1 ${resource}`);
-    }
-  },
-);
-
 engine.start();
 import.meta.hot?.dispose(() => {
   engine.dispose();
@@ -109,6 +97,6 @@ import.meta.hot?.dispose(() => {
   PhysicsManager.dispose();
   AudioManager.dispose();
   UIManager.dispose();
-  inventoryDebugFolder?.destroy();
+  inventory.dispose();
   DebugManager.dispose();
 });
