@@ -18,7 +18,8 @@ export default class Inventory {
   readonly #debugFolder: GUI | null;
 
   constructor() {
-    // Lets the HUD counter be tested by hand with `?debug`, for resources no gameplay adds yet
+    // Only wood is gathered (by felling trees): with `?debug`, lets the HUD counter be
+    // tested by hand for every resource
     this.#debugFolder = DebugManager.createFolder("Inventory", (folder) => {
       for (const resource of RESOURCE_IDS) {
         folder

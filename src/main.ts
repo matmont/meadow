@@ -3,7 +3,6 @@ import { Engine } from "./Engine";
 import Ground from "./entities/World/Ground";
 import Forest from "./entities/World/Forest";
 import FootDust from "./particles/FootDust/FootDust";
-import Tree from "./entities/Tree";
 import Campfire from "./entities/Campfire";
 import WindStreaks from "./entities/WindStreaks/WindStreaks";
 import LoaderManager from "./LoaderManager";
@@ -22,6 +21,7 @@ import ToolBar from "./ui/ToolBar/ToolBar";
 import InteractionPrompt from "./ui/InteractionPrompt/InteractionPrompt";
 import ResourceCounter from "./ui/ResourceCounter/ResourceCounter";
 import Inventory from "./Inventory";
+import WorldChanges from "./entities/World/WorldChanges";
 import InteractionManager from "./interaction/InteractionManager";
 import { COLORS } from "./colors";
 
@@ -42,13 +42,16 @@ UIManager.init(uiRoot);
 const engine = new Engine({ canvas });
 // The single inventory of the session: gatherers add to it, the HUD only reads it
 const inventory = new Inventory();
-engine.entities.add(new Tree({ x: 3, y: 0, z: -2 }));
+// What the player changed in the generated world (felled trees), kept across chunk reloads
+const worldChanges = new WorldChanges();
 engine.entities.add(new Campfire({ x: 5, y: 0, z: -0.5 }));
 const player = engine.entities.add(new Player(new Vector3(0, 10, 0)));
 InteractionManager.init(player);
 engine.entities.add(new Ground(player.object));
-// Random trees in chunks around the player; the tree above is placed by hand near the camp
-engine.entities.add(new Forest(player.object, engine.entities));
+// Random trees in chunks around the player, plus the camp tree; felling one gives wood
+engine.entities.add(
+  new Forest(player.object, engine.entities, inventory, worldChanges),
+);
 engine.particles.add(new FootDust(player));
 engine.entities.add(
   new FollowCamera(engine.camera, player.object, {

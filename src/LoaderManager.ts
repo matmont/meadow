@@ -144,6 +144,19 @@ const ASSETS = {
       scale: 3,
       nonMetallic: true,
     },
+    // Left by felled trees (see Forest)
+    stumpOld: {
+      format: "gltf",
+      url: "models/stump_old.glb",
+      scale: 3,
+      nonMetallic: true,
+    },
+    stumpRound: {
+      format: "gltf",
+      url: "models/stump_round.glb",
+      scale: 3,
+      nonMetallic: true,
+    },
     rockTall: {
       format: "gltf",
       url: "models/rock_tallJ.glb",
