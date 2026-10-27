@@ -16,7 +16,7 @@ import {
 import DebugManager from "../../src/DebugManager";
 import Inventory from "../../src/Inventory";
 import PhysicsManager from "../../src/PhysicsManager";
-import WorldChanges from "../../src/WorldChanges";
+import WorldChanges from "../../src/entities/World/WorldChanges";
 import { TREE_FELLING, TREE_SHAKE } from "../../src/entities/Tree";
 import Forest from "../../src/entities/World/Forest";
 import { FrameLoop, stubModels } from "./helpers/felling";

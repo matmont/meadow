@@ -21,7 +21,7 @@ import ToolBar from "./ui/ToolBar/ToolBar";
 import InteractionPrompt from "./ui/InteractionPrompt/InteractionPrompt";
 import ResourceCounter from "./ui/ResourceCounter/ResourceCounter";
 import Inventory from "./Inventory";
-import WorldChanges from "./WorldChanges";
+import WorldChanges from "./entities/World/WorldChanges";
 import InteractionManager from "./interaction/InteractionManager";
 import { COLORS } from "./colors";
 
